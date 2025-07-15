@@ -6,7 +6,8 @@ import {
     formatAuthors,
     extractYear,
     formatCitation,
-    formatTypes
+    formatTypes,
+    handleError
 } from './helpers';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -21,8 +22,6 @@ export function activate(context: vscode.ExtensionContext) {
         zoteroDbPath: expandPath(zoteroDbPath),
         betterBibtexDbPath: expandPath(betterBibtexDbPath),
     });
-
-    console.log('vscode-zotero activated');
 
     const searchLibrary = vscode.commands.registerCommand('zotero.searchLibrary', async () => {
         try {
@@ -91,11 +90,10 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            vscode.window.showErrorMessage(`Error: ${errorMessage}`);
+            handleError(error, `Error occurred while searching Zotero library`);
         }
+        zoteroDb.close();
     });
-
     context.subscriptions.push(searchLibrary);
 }
 

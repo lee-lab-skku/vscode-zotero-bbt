@@ -1,7 +1,8 @@
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 import * as sqlite3 from '@vscode/sqlite3';
-import { queryBbt, queryItems, queryCreators } from './queries';
+import { queryBbt, queryItems, queryCreators} from './queries';
+import { handleError} from './helpers';
 
 interface DatabaseOptions {
     zoteroDbPath: string;
@@ -39,8 +40,7 @@ export class ZoteroDatabase {
 
             return true;
         } catch (error) {
-            const errorMessage = (error instanceof Error) ? error.message : String(error);
-            vscode.window.showErrorMessage(`Failed to connect to databases: ${errorMessage}`);
+            handleError(error, `Failed to connect to databases`);
             return false;
         }
     }
@@ -127,15 +127,11 @@ export class ZoteroDatabase {
 
             return items;
         } catch (error) {
-            const errorMessage = (error instanceof Error) ? error.message : String(error);
-            vscode.window.showErrorMessage(`Error querying database: ${errorMessage}`);
+            handleError(error, `Error querying database`);
             return [];
         }
     }
 
-    /**
-     * Close database connections
-     */
     public close(): void {
         if (this.db) {
             this.db.close();

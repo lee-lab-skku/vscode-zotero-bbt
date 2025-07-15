@@ -67,3 +67,8 @@ export function formatTypes(itemType: string): string {
             return '📎';
     }
 }
+
+export function handleError(error: any, message: string): void {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    vscode.window.showErrorMessage(`${message}: ${errorMessage}`);
+}
