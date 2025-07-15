@@ -35,8 +35,14 @@ export class ZoteroDatabase {
             }
 
             // Connect to databases in read-only mode
-            this.db = new sqlite3.Database(this.options.zoteroDbPath, sqlite3.OPEN_READONLY);
-            this.bbt = new sqlite3.Database(this.options.betterBibtexDbPath, sqlite3.OPEN_READONLY);
+            this.db = new sqlite3.Database(
+                `file://${this.options.zoteroDbPath}?immutable=1`,
+                sqlite3.OPEN_READONLY | sqlite3.OPEN_URI
+            );
+            this.bbt = new sqlite3.Database(
+                `file://${this.options.betterBibtexDbPath}?immutable=1`,
+                sqlite3.OPEN_READONLY | sqlite3.OPEN_URI
+            );
 
             return true;
         } catch (error) {
