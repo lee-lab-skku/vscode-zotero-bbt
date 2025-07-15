@@ -13,11 +13,7 @@ export const queryItems = `
                     DISTINCT items.key, items.itemID,
                     fields.fieldName,
                     parentItemDataValues.value,
-                    itemTypes.typeName,
-                    itemAttachments.path AS attachment_path,
-                    itemAttachments.contentType AS attachment_content_type,
-                    itemAttachments.linkMode AS attachment_link_mode,
-                    SUBSTR(itemAttachments.path, INSTR(itemAttachments.path, ':') + 1) AS folder_name
+                    itemTypes.typeName
                 FROM
                     items
                     INNER JOIN itemData ON itemData.itemID = items.itemID
@@ -26,8 +22,10 @@ export const queryItems = `
                     INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
                     INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
                     INNER JOIN itemTypes ON itemTypes.itemTypeID = items.itemTypeID
-                    LEFT JOIN itemAttachments ON items.itemID = itemAttachments.parentItemID AND itemAttachments.contentType = 'application/pdf'
-            `;
+                 WHERE
+					itemTypes.typeName NOT LIKE "attachment" AND
+					itemTypes.typeName NOT LIKE "annotation"
+                `;
 
 // query for creators
 export const queryCreators = `

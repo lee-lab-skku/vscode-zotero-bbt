@@ -1,4 +1,3 @@
-// src/database.ts
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 import * as sqlite3 from '@vscode/sqlite3';
@@ -94,19 +93,12 @@ export class ZoteroDatabase {
                 if (!rawItems[row.key]) {
                     rawItems[row.key] = {
                         creators: [],
-                        attachment: {},
                         key: row.key
                     };
                 }
 
                 rawItems[row.key][row.fieldName] = row.value;
                 rawItems[row.key].itemType = row.typeName;
-
-                if (row.attachment_path) {
-                    rawItems[row.key].attachment.path = row.attachment_path;
-                    rawItems[row.key].attachment.content_type = row.attachment_content_type;
-                    rawItems[row.key].attachment.link_mode = row.attachment_link_mode;
-                }
 
                 if (row.fieldName === 'DOI') {
                     rawItems[row.key].DOI = row.value;
@@ -115,7 +107,6 @@ export class ZoteroDatabase {
 
             for (const row of sqlCreators) {
                 if (rawItems[row.key]) {
-                    // rawItems[row.key].creators[row.orderIndex + 1] = {
                     rawItems[row.key].creators[row.orderIndex] = {
                         firstName: row.firstName,
                         lastName: row.lastName,
