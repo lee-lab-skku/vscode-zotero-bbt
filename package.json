@@ -14,10 +14,25 @@
   "contributes": {
     "commands": [
       {
-        "command": "vscode-zotero.helloWorld",
-        "title": "Hello World"
+        "command": "zotero.searchLibrary",
+        "title": "Zotero: Search Library"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Zotero",
+      "properties": {
+        "zotero.zoteroDbPath": {
+          "type": "string",
+          "default": "~/Zotero/zotero.sqlite",
+          "description": "Path to Zotero database file"
+        },
+        "zotero.betterBibtexDbPath": {
+          "type": "string",
+          "default": "~/Zotero/better-bibtex.sqlite",
+          "description": "Path to Better BibTeX database file"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -39,6 +54,6 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@types/better-sqlite3": "^7.6.13"
+    "@vscode/sqlite3": "^5.1.8-vscode"
   }
 }
