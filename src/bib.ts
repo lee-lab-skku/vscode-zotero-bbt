@@ -1,7 +1,11 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { expandPath, handleError } from './helpers';
+import {
+    expandPath,
+    handleError,
+    extractDate
+} from './helpers';
 
 export class BibManager {
     // Converts a Zotero item to a BibTeX entry
@@ -37,12 +41,23 @@ export class BibManager {
             ) {
                 bibEntry += `  journal = {${value}},\n`;
             } else if (
+                key === 'date' &&
+                typeof value === 'string'
+            ) {
+                // only add date if it is in YYYY-MM-DD format
+                const date = extractDate(value);
+                if (date) {
+                    bibEntry += `  date = {${date}},\n`;
+                }
+            } else if (
                 key === 'accessDate' &&
                 typeof value === 'string'
             ) {
                 // check if value has YYYY-MM-DD format if so, add match as urldate
-                const urlDateMatch = value.match(/(\d{4})-(\d{2})-(\d{2})/);
-                bibEntry += `  urldate = {${urlDateMatch ? urlDateMatch[0] : value}},\n`;
+                const urlDate = extractDate(value);
+                if (urlDate) {
+                    bibEntry += `  urldate = {${urlDate}},\n`;
+                } 
             } else if (
                 key !== 'citeKey' &&
                 key !== 'itemType' &&
