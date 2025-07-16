@@ -37,6 +37,13 @@ export class BibManager {
             ) {
                 bibEntry += `  journal = {${value}},\n`;
             } else if (
+                key === 'accessDate' &&
+                typeof value === 'string'
+            ) {
+                // check if value has YYYY-MM-DD format if so, add match as urldate
+                const urlDateMatch = value.match(/(\d{4})-(\d{2})-(\d{2})/);
+                bibEntry += `  urldate = {${urlDateMatch ? urlDateMatch[0] : value}},\n`;
+            } else if (
                 key !== 'citeKey' &&
                 key !== 'itemType' &&
                 key !== 'attachment' &&

@@ -32,7 +32,7 @@ export function formatAuthors(creators: any[]): string {
 
 export function extractYear(date: string): string | null{
     const match = date.match(/(\d{4})/);
-    return match ? match[1] : null;
+    return match ? match[0] : null;
 }
 
 export function formatCitation(citeKey: string, fileType: string): string {
