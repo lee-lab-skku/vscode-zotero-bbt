@@ -4,7 +4,6 @@ import { BibManager } from './bib';
 import {
     expandPath,
     formatAuthors,
-    extractYear,
     formatCitation,
     formatTypes,
     handleError
@@ -44,13 +43,12 @@ export function activate(context: vscode.ExtensionContext) {
             const quickPickItems = items.map(item => {
                 const creators = item.creators;
                 const authors = formatAuthors(creators);
-                const year = extractYear(item.year || item.date || 'n.d.');
 
                 // determine icon based on item type
                 const icon = formatTypes(item.itemType);
 
                 return {
-                    label: `${icon} ${authors}, (${year}) ${item.title}`,
+                    label: `${icon} ${authors} (${item.year}) ${item.title}`,
                     description: item.citekey,
                     item: item
                 };
@@ -95,6 +93,86 @@ export function activate(context: vscode.ExtensionContext) {
         zoteroDb.close();
     });
     context.subscriptions.push(searchLibrary);
+
+    const openItem = vscode.commands.registerCommand('zotero.openItem', async () => {
+        try {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showErrorMessage('No active editor');
+                return;
+            }
+
+            // Get the current position and word under cursor
+            const position = editor.selection.active;
+            const document = editor.document;
+            const wordRange = document.getWordRangeAtPosition(position, /@[\w-]+/);
+            const fileType = editor.document.languageId;
+
+            if (!wordRange) {
+                vscode.window.showInformationMessage('No citation key found at cursor position');
+                return;
+            }
+
+            const word = document.getText(wordRange);
+
+            // Check if word starts with @
+            if (!word.startsWith('@')) {
+                vscode.window.showInformationMessage('Word under cursor is not a citation key');
+                return;
+            }
+
+            // Extract citation key (remove the @ symbol)
+            const citekey = word.substring(1);
+            const bibFile = await bibManager.locateBibFile(fileType);
+            if (bibFile) {
+                const openOptions = bibManager.getOpenOptions(bibFile, citekey);
+                if (openOptions.length === 0) {
+                    vscode.window.showInformationMessage(`No PDF or DOI found for this item`);
+                    return;
+                }
+                if (openOptions.length === 1) {
+                    openAttachment(openOptions[0]);
+                } else {
+                    // Show QuickPick for multiple options
+                    const quickPickItems = openOptions.map((option, index) => ({
+                        label: option.type === 'pdf' ? 'Open PDF' : 
+                               option.type === 'doi' ? 'Open DOI link' : 
+                               option.type === 'zotero' ? 'Open in Zotero' : '',
+                        option: option,
+                        index: index
+                    }));
+                    
+                    const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
+                        placeHolder: 'Choose action'
+                    });
+
+                    if (selectedItem) {
+                        openAttachment(selectedItem.option);
+                    }
+                }
+            }
+        } catch (error) {
+            handleError(error, `Error occurred while opening Zotero item`);
+        }
+        zoteroDb.close();
+    });
+    context.subscriptions.push(openItem);
+}
+
+function openAttachment(option: any): void {
+    switch (option.type) {
+        case 'doi':
+            vscode.env.openExternal(vscode.Uri.parse(option.url));
+            break;
+        case 'zotero':
+            vscode.env.openExternal(vscode.Uri.parse(`zotero://select/library/items/${option.key}`));
+            break;
+        case 'pdf':
+            vscode.env.openExternal(vscode.Uri.parse(`zotero://open-pdf/library/items/${option.key}`));
+            break;
+        default:
+            break;
+    }
 }
 
 export function deactivate() { }

@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as vscode from 'vscode';
 import * as sqlite3 from '@vscode/sqlite3';
 import { queryBbt, queryItems, queryCreators} from './queries';
-import { handleError} from './helpers';
+import { handleError, extractYear } from './helpers';
 
 interface DatabaseOptions {
     zoteroDbPath: string;
@@ -105,6 +105,10 @@ export class ZoteroDatabase {
 
                 rawItems[row.key][row.fieldName] = row.value;
                 rawItems[row.key].itemType = row.typeName;
+                
+                if (row.pdf_key) {
+                    rawItems[row.key].pdfKey = row.pdf_key;
+                }
 
                 if (row.fieldName === 'DOI') {
                     rawItems[row.key].DOI = row.value;
@@ -127,6 +131,7 @@ export class ZoteroDatabase {
                 const citekey = bbtCitekeys[key];
                 if (citekey) {
                     item.citekey = citekey;
+                    item.year = extractYear(item.date || item.year || 'n.d.');
                     items.push(item);
                 }
             }

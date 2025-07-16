@@ -16,6 +16,10 @@
       {
         "command": "zotero.searchLibrary",
         "title": "Zotero: Search Library"
+      },
+      {
+        "command": "zotero.openItem",
+        "title": "Zotero: Open Citation Item Under Cursor"
       }
     ],
     "configuration": {

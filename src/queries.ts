@@ -9,11 +9,13 @@ export const queryBbt = `
 
 // query for zotero items
 export const queryItems = `
-                SELECT
-                    DISTINCT items.key, items.itemID,
+                SELECT DISTINCT 
+                    items.key,
+                    items.itemID,
                     fields.fieldName,
                     parentItemDataValues.value,
-                    itemTypes.typeName
+                    itemTypes.typeName,
+                    attachment_items.key AS pdf_key
                 FROM
                     items
                     INNER JOIN itemData ON itemData.itemID = items.itemID
@@ -22,15 +24,14 @@ export const queryItems = `
                     INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
                     INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
                     INNER JOIN itemTypes ON itemTypes.itemTypeID = items.itemTypeID
-                 WHERE
-					itemTypes.typeName NOT LIKE "attachment" AND
-					itemTypes.typeName NOT LIKE "annotation"
-                `;
+                    LEFT JOIN itemAttachments ON items.itemID = itemAttachments.parentItemID AND itemAttachments.contentType = 'application/pdf'
+                    LEFT JOIN items attachment_items ON itemAttachments.itemID = attachment_items.itemID
+            `;
 
 // query for creators
 export const queryCreators = `
-                SELECT
-                    DISTINCT items.key,
+                SELECT DISTINCT
+                    items.key,
                     creators.firstName,
                     creators.lastName,
                     itemCreators.orderIndex,
