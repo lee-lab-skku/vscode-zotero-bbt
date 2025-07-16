@@ -25,7 +25,7 @@ At the moment, the extension supports `quarto` and `latex` for inserting citatio
 ### Insert citation (`zotero.searchLibrary`)
 (macOS: <kbd>ctrl</kbd> + <kbd>cmd</kbd> + <kbd>r</kbd>, Windows/Linux: <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>r</kbd>).
 
-![Screenshot of inserting citation](./resources/fig1.gif)
+![Screenshot of inserting citation](https://raw.githubusercontent.com/jinvim/vscode-zotero/refs/heads/main/resources/fig1.gif)
 
 
 Items in local Zotero database with Bibtex citation key will be shown in Quick Picks.
@@ -35,12 +35,12 @@ If you sellect an item, it will automatically add to `*.bib` file of your projec
 1. `*.bib` file in `quarto` or `latex` file header (for quarto, this includes `_quarto.yml`)
 1. `bibliography.bib` or `references.bib` file in the workspace root directory
 1. Any `*.bib` file i the workspace root directory.
-1. If none of above is available, ask user to provide path.
+1. If none of above is available, ask user to provide path, or create a new one (you still need to add the file to `quarto` or `latex` header).
 
 ### Open PDF/Zotero entry/DOI of citation item under cursor (`zotero.openItem`)
 (macOS: <kbd>ctrl</kbd> + <kbd>cmd</kbd> + <kbd>o</kbd>, Windows/Linux: <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>o</kbd>).
 
-![Screenshot of opening item](./resources/fig2.gif)
+![Screenshot of opening item](https://raw.githubusercontent.com/jinvim/vscode-zotero/refs/heads/main/resources/fig2.gif)
 
 For any citations that were inserted using this extension, you can:
 
