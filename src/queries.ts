@@ -2,7 +2,8 @@
 // query for better bibtex citation keys
 export const queryBbt = `
                 SELECT
-                    itemKey, citationKey
+                    itemKey as zoteroKey, 
+					citationKey as citeKey
                 FROM
                     citationkey
             `;
@@ -10,12 +11,11 @@ export const queryBbt = `
 // query for zotero items
 export const queryItems = `
                 SELECT DISTINCT 
-                    items.key,
-                    items.itemID,
+                    items.key as zoteroKey,
                     fields.fieldName,
                     parentItemDataValues.value,
                     itemTypes.typeName,
-                    attachment_items.key AS pdf_key
+                    attachment_items.key AS pdfKey
                 FROM
                     items
                     INNER JOIN itemData ON itemData.itemID = items.itemID
@@ -31,7 +31,7 @@ export const queryItems = `
 // query for creators
 export const queryCreators = `
                 SELECT DISTINCT
-                    items.key,
+                    items.key as zoteroKey,
                     creators.firstName,
                     creators.lastName,
                     itemCreators.orderIndex,

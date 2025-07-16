@@ -7,9 +7,9 @@ export class BibManager {
     // Converts a Zotero item to a BibTeX entry
     public entryToBibEntry(item: any): string {
         let bibEntry = '@';
-        const citekey = item.citekey || '';
+        const citeKey = item.citeKey || '';
 
-        bibEntry += `${item.itemType || ''}{${citekey},\n`;
+        bibEntry += `${item.itemType || ''}{${citeKey},\n`;
 
         for (const [key, value] of Object.entries(item)) {
             if (key === 'creators') {
@@ -24,9 +24,10 @@ export class BibManager {
                 author = author.slice(0, -5);
                 bibEntry += `${author}},\n`;
             } else if (
-                key !== 'citekey' &&
+                key !== 'citeKey' &&
                 key !== 'itemType' &&
                 key !== 'attachment' &&
+                key !== 'abstractNote' &&
                 typeof value === 'string'
             ) {
                 bibEntry += `  ${key} = {${value}},\n`;
@@ -111,7 +112,7 @@ export class BibManager {
         return bibPath;
     }
 
-    public updateBibFile(bibFile: string, citekey: string, bibEntry: string): void {
+    public updateBibFile(bibFile: string, citeKey: string, bibEntry: string): void {
         try {
             const bibPath = expandPath(bibFile);
 
@@ -124,7 +125,7 @@ export class BibManager {
                 }
                 // Create empty file
                 fs.writeFileSync(bibPath, '');
-                vscode.window.showInformationMessage(`Entry for ${citekey} already exists in bibliography`);
+                vscode.window.showInformationMessage(`Entry for ${citeKey} already exists in bibliography`);
             }
 
             // Read file to check if entry already exists
@@ -133,15 +134,15 @@ export class BibManager {
 
             // Check if entry already exists
             for (let i = 0; i < lines.length; i++) {
-                if (lines[i].match(new RegExp(`^@.*{${citekey},`))) {
-                    vscode.window.showInformationMessage(`Entry for ${citekey} already exists in bibliography`);
+                if (lines[i].match(new RegExp(`^@.*{${citeKey},`))) {
+                    vscode.window.showInformationMessage(`Entry for ${citeKey} already exists in bibliography`);
                     return;
                 }
             }
 
             // Append entry to file
             fs.appendFileSync(bibPath, bibEntry);
-            vscode.window.showInformationMessage(`Added ${citekey} to ${bibPath}`);
+            vscode.window.showInformationMessage(`Added ${citeKey} to ${bibPath}`);
         } catch (error) {
             handleError(error, `Failed to update bibliography file`);
         }
@@ -174,7 +175,7 @@ export class BibManager {
             options.push({ type: 'pdf', key: pdfKeyMatch[1] });
         }
         // Extract Zotero Item Key
-        const keyMatch = entryText.match(/key\s*=\s*\{([^}]+)\}/);
+        const keyMatch = entryText.match(/zoteroKey\s*=\s*\{([^}]+)\}/);
         if (keyMatch) {
             options.push({ type: 'zotero', key: keyMatch[1] });
         }

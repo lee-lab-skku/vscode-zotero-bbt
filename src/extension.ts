@@ -49,7 +49,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                 return {
                     label: `${icon} ${authors} (${item.year}) ${item.title}`,
-                    description: item.citekey,
+                    description: item.citeKey,
                     item: item
                 };
             });
@@ -72,8 +72,8 @@ export function activate(context: vscode.ExtensionContext) {
                 const fileType = editor.document.languageId;
 
                 // Format citation key based on file type
-                const citekey = selected.item.citekey;
-                let formattedCitation = formatCitation(citekey, fileType);
+                const citeKey = selected.item.citeKey;
+                let formattedCitation = formatCitation(citeKey, fileType);
 
                 // Insert citation
                 editor.edit(editBuilder => {
@@ -84,7 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
                 const bibFile = await bibManager.locateBibFile(fileType);
                 if (bibFile) {
                     const bibEntry = bibManager.entryToBibEntry(selected.item);
-                    bibManager.updateBibFile(bibFile, citekey, bibEntry);
+                    bibManager.updateBibFile(bibFile, citeKey, bibEntry);
                 }
             }
         } catch (error) {
@@ -122,10 +122,10 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             // Extract citation key (remove the @ symbol)
-            const citekey = word.substring(1);
+            const citeKey = word.substring(1);
             const bibFile = await bibManager.locateBibFile(fileType);
             if (bibFile) {
-                const openOptions = bibManager.getOpenOptions(bibFile, citekey);
+                const openOptions = bibManager.getOpenOptions(bibFile, citeKey);
                 if (openOptions.length === 0) {
                     vscode.window.showInformationMessage(`No PDF or DOI found for this item`);
                     return;

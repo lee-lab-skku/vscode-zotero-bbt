@@ -35,17 +35,17 @@ export function extractYear(date: string): string {
     return match ? match[1] : 'n.d.';
 }
 
-export function formatCitation(citekey: string, fileType: string): string {
+export function formatCitation(citeKey: string, fileType: string): string {
     switch (fileType) {
         case 'latex':
         case 'tex':
         case 'plaintex':
-            return `\\cite{${citekey}}`;
+            return `\\cite{${citeKey}}`;
         case 'markdown':
         case 'quarto':
-            return `@${citekey}`;
+            return `@${citeKey}`;
         default:
-            return `@${citekey}`;
+            return `@${citeKey}`;
     }
 }
 

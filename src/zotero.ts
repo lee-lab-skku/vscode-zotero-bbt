@@ -91,33 +91,33 @@ export class ZoteroDatabase {
             // Process results
             const bbtCitekeys: Record<string, string> = {};
             for (const row of sqlBbt) {
-                bbtCitekeys[row.itemKey] = row.citationKey;
+                bbtCitekeys[row.zoteroKey] = row.citeKey;
             }
 
             const rawItems: Record<string, any> = {};
             for (const row of sqlItems) {
-                if (!rawItems[row.key]) {
-                    rawItems[row.key] = {
+                if (!rawItems[row.zoteroKey]) {
+                    rawItems[row.zoteroKey] = {
                         creators: [],
-                        key: row.key
+                        zoteroKey: row.zoteroKey
                     };
                 }
 
-                rawItems[row.key][row.fieldName] = row.value;
-                rawItems[row.key].itemType = row.typeName;
-                
-                if (row.pdf_key) {
-                    rawItems[row.key].pdfKey = row.pdf_key;
+                rawItems[row.zoteroKey][row.fieldName] = row.value;
+                rawItems[row.zoteroKey].itemType = row.typeName;
+
+                if (row.pdfKey) {
+                    rawItems[row.zoteroKey].pdfKey = row.pdfKey;
                 }
 
                 if (row.fieldName === 'DOI') {
-                    rawItems[row.key].DOI = row.value;
+                    rawItems[row.zoteroKey].DOI = row.value;
                 }
             }
 
             for (const row of sqlCreators) {
-                if (rawItems[row.key]) {
-                    rawItems[row.key].creators[row.orderIndex] = {
+                if (rawItems[row.zoteroKey]) {
+                    rawItems[row.zoteroKey].creators[row.orderIndex] = {
                         firstName: row.firstName,
                         lastName: row.lastName,
                         creatorType: row.creatorType
@@ -125,12 +125,12 @@ export class ZoteroDatabase {
                 }
             }
 
-            // Build final items array with citekeys
+            // Build final items array with citeKeys
             const items: any[] = [];
-            for (const [key, item] of Object.entries(rawItems)) {
-                const citekey = bbtCitekeys[key];
-                if (citekey) {
-                    item.citekey = citekey;
+            for (const [zoteroKey, item] of Object.entries(rawItems)) {
+                const citeKey = bbtCitekeys[zoteroKey];
+                if (citeKey) {
+                    item.citeKey = citeKey;
                     item.year = extractYear(item.date || item.year || 'n.d.');
                     items.push(item);
                 }
