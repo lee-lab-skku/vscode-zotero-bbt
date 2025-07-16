@@ -131,7 +131,7 @@ export class ZoteroDatabase {
                 const citeKey = bbtCitekeys[zoteroKey];
                 if (citeKey) {
                     item.citeKey = citeKey;
-                    item.year = extractYear(item.date || item.year || 'n.d.');
+                    item.year = extractYear(item.date || '');
                     items.push(item);
                 }
             }

@@ -155,7 +155,7 @@ export class BibManager {
 
             // Append entry to file
             fs.appendFileSync(bibPath, bibEntry);
-            vscode.window.showInformationMessage(`Added ${citeKey} to ${bibPath}`);
+            vscode.window.showInformationMessage(`Added ${citeKey} to ${bibFile}`);
         } catch (error) {
             handleError(error, `Failed to update bibliography file`);
         }

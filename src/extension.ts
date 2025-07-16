@@ -48,7 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
                 const icon = formatTypes(item.itemType);
 
                 return {
-                    label: `${icon} ${authors} (${item.year}) ${item.title}`,
+                    label: `${icon} ${authors} (${item.year || 'n.d.'}) ${item.title}`,
                     description: item.citeKey,
                     item: item
                 };
