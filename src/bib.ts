@@ -92,7 +92,7 @@ export class BibManager {
                 }
             }
         }
-        return null;
+        return await this.locateWorkspaceBib();
     }
 
     private async locateBibTex(text: string): Promise<string | null> {
@@ -109,6 +109,28 @@ export class BibManager {
                 bibFile += '.bib';
             }
             return bibFile;
+        }
+        return await this.locateWorkspaceBib();
+    }
+
+    private async locateWorkspaceBib(): Promise<string | null> {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+            return null;
+        }
+        const rootPath = workspaceFolders[0].uri.fsPath;
+        const candidates = ['bibliography.bib', 'references.bib'];
+        for (const candidate of candidates) {
+            const candidatePath = path.join(rootPath, candidate);
+            if (fs.existsSync(candidatePath)) {
+                return candidate;
+            }
+        }
+        const files = fs.readdirSync(rootPath);
+        for (const file of files) {
+            if (file.endsWith('.bib')) {
+                return file;
+            }
         }
         return null;
     }
@@ -160,7 +182,7 @@ export class BibManager {
                 }
                 // Create empty file
                 fs.writeFileSync(bibPath, '');
-                vscode.window.showInformationMessage(`Entry for ${citeKey} already exists in bibliography`);
+                vscode.window.showInformationMessage(`Entry for @${citeKey} already exists in bibliography`);
             }
 
             // Read file to check if entry already exists
@@ -170,14 +192,14 @@ export class BibManager {
             // Check if entry already exists
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].match(new RegExp(`^@.*{${citeKey},`))) {
-                    vscode.window.showInformationMessage(`Entry for ${citeKey} already exists in bibliography`);
+                    vscode.window.showInformationMessage(`Entry for @${citeKey} already exists in bibliography`);
                     return;
                 }
             }
 
             // Append entry to file
             fs.appendFileSync(bibPath, bibEntry);
-            vscode.window.showInformationMessage(`Added ${citeKey} to ${bibFile}`);
+            vscode.window.showInformationMessage(`Added @${citeKey} to ${bibFile}`);
         } catch (error) {
             handleError(error, `Failed to update bibliography file`);
         }

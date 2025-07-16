@@ -105,24 +105,21 @@ export function activate(context: vscode.ExtensionContext) {
             // Get the current position and word under cursor
             const position = editor.selection.active;
             const document = editor.document;
-            const wordRange = document.getWordRangeAtPosition(position, /@[\w-]+/);
+            const wordRange = document.getWordRangeAtPosition(position);
             const fileType = editor.document.languageId;
 
             if (!wordRange) {
-                vscode.window.showInformationMessage('No citation key found at cursor position');
+                vscode.window.showInformationMessage('No word found at cursor position');
                 return;
             }
 
             const word = document.getText(wordRange);
 
-            // Check if word starts with @
-            if (!word.startsWith('@')) {
-                vscode.window.showInformationMessage('Word under cursor is not a citation key');
-                return;
+            let citeKey = word;
+            // extract citation key (remove the @ symbol)
+            if (citeKey.startsWith('@')) {
+                citeKey = citeKey.substring(1);
             }
-
-            // Extract citation key (remove the @ symbol)
-            const citeKey = word.substring(1);
             const bibFile = await bibManager.locateBibFile(fileType);
             if (bibFile) {
                 const openOptions = bibManager.getOpenOptions(bibFile, citeKey);
