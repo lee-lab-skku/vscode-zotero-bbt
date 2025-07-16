@@ -22,6 +22,18 @@
         "title": "Zotero: Open Citation Item Under Cursor"
       }
     ],
+    "keybindings": [
+      {
+        "command": "zotero.searchLibrary",
+        "key": "ctrl+alt+r",
+        "mac": "ctrl+cmd+r"
+      },
+      {
+        "command": "zotero.openItem",
+        "key": "ctrl+alt+o",
+        "mac": "ctrl+cmd+o"
+      }
+    ],
     "configuration": {
       "title": "Zotero",
       "properties": {
