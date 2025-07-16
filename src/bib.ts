@@ -182,7 +182,7 @@ export class BibManager {
                 }
                 // Create empty file
                 fs.writeFileSync(bibPath, '');
-                vscode.window.showInformationMessage(`Entry for @${citeKey} already exists in bibliography`);
+                vscode.window.showInformationMessage(`Created new bibliography file at ${bibFile}`);
             }
 
             // Read file to check if entry already exists
