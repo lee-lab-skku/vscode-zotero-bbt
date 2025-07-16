@@ -1,7 +1,7 @@
 {
   "name": "vscode-zotero",
-  "displayName": "vscode-zotero",
-  "description": "",
+  "displayName": "VSCode Zotero",
+  "description": "An extension to insert reference from Zotero library and add them to a bib file.",
   "version": "1.0.0",
   "engines": {
     "vscode": "^1.102.0"
