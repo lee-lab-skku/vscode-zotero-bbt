@@ -55,7 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             // Show QuickPick
-            const selected = await vscode.window.showQuickPick(quickPickItems, {
+            let selected = await vscode.window.showQuickPick(quickPickItems, {
                 placeHolder: 'Search Zotero library',
                 matchOnDescription: true,
                 matchOnDetail: true

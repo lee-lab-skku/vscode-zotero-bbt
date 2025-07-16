@@ -8,9 +8,17 @@ export class BibManager {
     public entryToBibEntry(item: any): string {
         let bibEntry = '@';
         const citeKey = item.citeKey || '';
+        
+        if (item.itemType === 'magazineArticle') {
+            item.subtype = 'magazine';
+        }
+        if (item.itemType === 'newspaperArticle') {
+            item.subtype = 'newspaper';
+        }
+        item.itemType = toBibtexType(item.itemType || 'misc');
 
-        bibEntry += `${item.itemType || ''}{${citeKey},\n`;
-
+        bibEntry += `${item.itemType}{${citeKey},\n`;
+        
         for (const [key, value] of Object.entries(item)) {
             if (key === 'creators') {
                 bibEntry += '  author = {';
@@ -23,6 +31,11 @@ export class BibManager {
                 // Remove trailing ' and '
                 author = author.slice(0, -5);
                 bibEntry += `${author}},\n`;
+            } else if (
+                item.itemType === 'article' &&
+                key === 'publicationTitle'
+            ) {
+                bibEntry += `  journal = {${value}},\n`;
             } else if (
                 key !== 'citeKey' &&
                 key !== 'itemType' &&
@@ -187,5 +200,70 @@ export class BibManager {
 
         return options;
 
+    }
+}
+
+function toBibtexType(itemType: string): string {
+    switch (itemType) {
+        case 'journalArticle':
+        case 'magazineArticle':
+        case 'newspaperArticle':
+        case 'preprint':
+            return 'article';
+        case 'artwork':
+            return 'artwork';
+        case 'audioRecording':
+        case 'radioBroadcast':
+        case 'podcast':
+            return 'audio';
+        case 'book':
+            return 'book';
+        case 'dataset':
+            return 'dataset';
+        case 'bookSection':
+            return 'incollection';
+        case 'conferencePaper':
+            return 'inproceedings';
+        case 'dictionaryEntry':
+        case 'encyclopediaArticle':
+            return 'inreference';
+        case 'case':
+        case 'gazette':
+        case 'hearing':
+            return 'jurisdiction';
+        case 'bill':
+        case 'statute':
+            return 'legislation';
+        case 'email':
+        case 'letter':
+            return 'letter';
+        case 'document':
+        case 'instantMessage':
+        case 'interview':
+        case 'map':
+            return 'misc';
+        case 'blogPost':
+        case 'forumPost':
+        case 'webpage':
+            return 'online';
+        case 'patent':
+            return 'patent';
+        case 'report':
+            return 'report';
+        case 'computerProgram':
+            return 'software';
+        case 'standard':
+            return 'standard';
+        case 'thesis':
+            return 'thesis';
+        case 'manuscript':
+        case 'presentation':
+            return 'unpublished';
+        case 'film':
+        case 'tvBroadcast':
+        case 'videoRecording':
+            return 'video';
+        default:
+            return itemType;
     }
 }
