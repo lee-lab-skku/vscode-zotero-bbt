@@ -25,7 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
     const searchLibrary = vscode.commands.registerCommand('zotero.searchLibrary', async () => {
         try {
             // Connect to database
-            const connected = zoteroDb.connect();
+            const connected = await zoteroDb.connect();
             if (!connected) {
                 vscode.window.showErrorMessage('Failed to connect to Zotero database');
                 return;
@@ -51,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
                     label: `${icon} ${authors} (${item.year || 'n.d.'})`,
                     description: `@${item.citeKey}`,
                     item: item,
-                    detail: item.title 
+                    detail: item.title
                 };
             });
 
@@ -90,8 +90,9 @@ export function activate(context: vscode.ExtensionContext) {
             }
         } catch (error) {
             handleError(error, `Error occurred while searching Zotero library`);
+        } finally {
+            zoteroDb.close();
         }
-        zoteroDb.close();
     });
     context.subscriptions.push(searchLibrary);
 

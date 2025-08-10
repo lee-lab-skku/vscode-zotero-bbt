@@ -1,6 +1,6 @@
-import * as fs from 'fs';
+import * as fs from 'fs/promises';
 import * as vscode from 'vscode';
-import * as sqlite3 from '@vscode/sqlite3';
+import initSqlJs, { Database } from 'sql.js';
 import { queryBbt, queryItems, queryCreators} from './queries';
 import { handleError, extractYear } from './helpers';
 
@@ -11,8 +11,8 @@ interface DatabaseOptions {
 
 export class ZoteroDatabase {
     private options: DatabaseOptions;
-    private db: sqlite3.Database | null = null;
-    private bbt: sqlite3.Database | null = null;
+    private db: Database | null = null;
+    private bbt: Database | null = null;
 
     constructor(options: DatabaseOptions) {
         this.options = options;
@@ -21,32 +21,31 @@ export class ZoteroDatabase {
     /**
      * Connect to Zotero and Better BibTeX databases
      */
-    public connect(): boolean {
+    public async connect(): Promise<boolean> {
         try {
             // Check if files exist
-            if (!fs.existsSync(this.options.zoteroDbPath)) {
-                vscode.window.showErrorMessage(`Zotero database not found at ${this.options.zoteroDbPath}`);
-                return false;
-            }
+            await fs.access(this.options.zoteroDbPath);
+            await fs.access(this.options.betterBibtexDbPath);
 
-            if (!fs.existsSync(this.options.betterBibtexDbPath)) {
-                vscode.window.showErrorMessage(`Better BibTeX database not found at ${this.options.betterBibtexDbPath}`);
-                return false;
-            }
+            const SQL = await initSqlJs();
+            const zoteroDbFile = await fs.readFile(this.options.zoteroDbPath);
+            const bbtDbFile = await fs.readFile(this.options.betterBibtexDbPath);
 
-            // Connect to databases in read-only mode
-            this.db = new sqlite3.Database(
-                `file://${this.options.zoteroDbPath}?immutable=1`,
-                sqlite3.OPEN_READONLY | sqlite3.OPEN_URI
-            );
-            this.bbt = new sqlite3.Database(
-                `file://${this.options.betterBibtexDbPath}?immutable=1`,
-                sqlite3.OPEN_READONLY | sqlite3.OPEN_URI
-            );
+            this.db = new SQL.Database(zoteroDbFile);
+            this.bbt = new SQL.Database(bbtDbFile);
 
             return true;
         } catch (error) {
-            handleError(error, `Failed to connect to databases`);
+            if (error instanceof Error) {
+                if ('code' in error && error.code === 'ENOENT') {
+                    const filePath = 'path' in error ? (error as any).path : '';
+                    vscode.window.showErrorMessage(`Database file not found at ${filePath}`);
+                } else {
+                    handleError(error, `Failed to connect to databases`);
+                }
+            } else {
+                handleError(new Error(String(error)), `Failed to connect to databases`);
+            }
             return false;
         }
     }
@@ -61,67 +60,72 @@ export class ZoteroDatabase {
         }
 
         try {
-            // Create promise-based versions of the database methods
-            const dbAll = (sql: string): Promise<any[]> => {
-                return new Promise((resolve, reject) => {
-                    this.db!.all(sql, (err, rows) => {
-                        if (err) { reject(err); }
-                        else { resolve(rows); }
-                    });
-                });
-            };
-
-            const bbtAll = (sql: string): Promise<any[]> => {
-                return new Promise((resolve, reject) => {
-                    this.bbt!.all(sql, (err, rows) => {
-                        if (err) { reject(err); }
-                        else { resolve(rows); }
-                    });
-                });
-            };
-
-
             // Execute queries
-            const [sqlBbt, sqlItems, sqlCreators] = await Promise.all([
-                bbtAll(queryBbt),
-                dbAll(queryItems),
-                dbAll(queryCreators)
-            ]);
+            const [sqlBbt, sqlItems, sqlCreators] = [
+                this.bbt.exec(queryBbt),
+                this.db.exec(queryItems),
+                this.db.exec(queryCreators)
+            ];
 
             // Process results
             const bbtCitekeys: Record<string, string> = {};
-            for (const row of sqlBbt) {
-                bbtCitekeys[row.zoteroKey] = row.citeKey;
+            if (sqlBbt.length > 0) {
+                const { columns, values } = sqlBbt[0];
+                const zoteroKeyIndex = columns.indexOf('zoteroKey');
+                const citeKeyIndex = columns.indexOf('citeKey');
+                for (const row of values) {
+                    bbtCitekeys[row[zoteroKeyIndex] as string] = row[citeKeyIndex] as string;
+                }
             }
 
             const rawItems: Record<string, any> = {};
-            for (const row of sqlItems) {
-                if (!rawItems[row.zoteroKey]) {
-                    rawItems[row.zoteroKey] = {
-                        creators: [],
-                        zoteroKey: row.zoteroKey
-                    };
-                }
+            if (sqlItems.length > 0) {
+                const { columns, values } = sqlItems[0];
+                const zoteroKeyIndex = columns.indexOf('zoteroKey');
+                const fieldNameIndex = columns.indexOf('fieldName');
+                const valueIndex = columns.indexOf('value');
+                const typeNameIndex = columns.indexOf('typeName');
+                const pdfKeyIndex = columns.indexOf('pdfKey');
 
-                rawItems[row.zoteroKey][row.fieldName] = row.value;
-                rawItems[row.zoteroKey].itemType = row.typeName;
+                for (const row of values) {
+                    const zoteroKey = row[zoteroKeyIndex] as string;
+                    if (!rawItems[zoteroKey]) {
+                        rawItems[zoteroKey] = {
+                            creators: [],
+                            zoteroKey: zoteroKey
+                        };
+                    }
 
-                if (row.pdfKey) {
-                    rawItems[row.zoteroKey].pdfKey = row.pdfKey;
-                }
+                    rawItems[zoteroKey][row[fieldNameIndex] as string] = row[valueIndex];
+                    rawItems[zoteroKey].itemType = row[typeNameIndex];
 
-                if (row.fieldName === 'DOI') {
-                    rawItems[row.zoteroKey].DOI = row.value;
+                    if (row[pdfKeyIndex]) {
+                        rawItems[zoteroKey].pdfKey = row[pdfKeyIndex];
+                    }
+
+                    if (row[fieldNameIndex] === 'DOI') {
+                        rawItems[zoteroKey].DOI = row[valueIndex];
+                    }
                 }
             }
 
-            for (const row of sqlCreators) {
-                if (rawItems[row.zoteroKey]) {
-                    rawItems[row.zoteroKey].creators[row.orderIndex] = {
-                        firstName: row.firstName,
-                        lastName: row.lastName,
-                        creatorType: row.creatorType
-                    };
+            if (sqlCreators.length > 0) {
+                const { columns, values } = sqlCreators[0];
+                const zoteroKeyIndex = columns.indexOf('zoteroKey');
+                const orderIndexIndex = columns.indexOf('orderIndex');
+                const firstNameIndex = columns.indexOf('firstName');
+                const lastNameIndex = columns.indexOf('lastName');
+                const creatorTypeIndex = columns.indexOf('creatorType');
+
+                for (const row of values) {
+                    const zoteroKey = row[zoteroKeyIndex] as string;
+                    if (rawItems[zoteroKey]) {
+                        rawItems[zoteroKey].creators[row[orderIndexIndex] as number] = {
+                            firstName: row[firstNameIndex],
+                            lastName: row[lastNameIndex],
+                            creatorType: row[creatorTypeIndex]
+                        };
+                    }
                 }
             }
 
