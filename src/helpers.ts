@@ -4,8 +4,8 @@ import * as path from 'path';
 import * as os from 'os';
 
 export function expandPath(filePath: string): string {
-    if (filePath.startsWith('~')) {
-        return path.join(os.homedir(), filePath.slice(1));
+    if (filePath.startsWith('~/')) {
+        return path.join(os.homedir(), filePath.slice(2));
     }
     if (!path.isAbsolute(filePath)) {
         const workspaceFolders = vscode.workspace.workspaceFolders;
