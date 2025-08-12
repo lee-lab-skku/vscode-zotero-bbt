@@ -10,19 +10,20 @@ import {
 } from './helpers';
 
 export function activate(context: vscode.ExtensionContext) {
-    // initialize configuration
-    const config = vscode.workspace.getConfiguration('zotero');
-    const zoteroDbPath = config.get<string>('zoteroDbPath', '~/Zotero/zotero.sqlite');
-    const betterBibtexDbPath = config.get<string>('betterBibtexDbPath', '~/Zotero/better-bibtex.sqlite');
 
     // initialize managers
     const bibManager = new BibManager();
-    const zoteroDb = new ZoteroDatabase({
-        zoteroDbPath: expandPath(zoteroDbPath),
-        betterBibtexDbPath: expandPath(betterBibtexDbPath),
-    });
 
     const searchLibrary = vscode.commands.registerCommand('zotero.searchLibrary', async () => {
+        // initialize configuration
+        let config = vscode.workspace.getConfiguration('zotero');
+        let zoteroDbPath = config.get<string>('zoteroDbPath', '~/Zotero/zotero.sqlite');
+        let betterBibtexDbPath = config.get<string>('betterBibtexDbPath', '~/Zotero/better-bibtex.sqlite');
+
+        let zoteroDb = new ZoteroDatabase({
+            zoteroDbPath: expandPath(zoteroDbPath),
+            betterBibtexDbPath: expandPath(betterBibtexDbPath),
+        });
         try {
             // Connect to database
             const connected = await zoteroDb.connect();
@@ -153,7 +154,6 @@ export function activate(context: vscode.ExtensionContext) {
         } catch (error) {
             handleError(error, `Error occurred while opening Zotero item`);
         }
-        zoteroDb.close();
     });
     context.subscriptions.push(openItem);
 }
