@@ -41,6 +41,11 @@ export class BibManager {
             ) {
                 bibEntry += `  journal = {${value}},\n`;
             } else if (
+                item.itemType === 'inproceedings' &&
+                key === 'proceedingsTitle'
+            ) {
+                bibEntry += `  booktitle = {${value}},\n`;
+            } else if (
                 key === 'date' &&
                 typeof value === 'string'
             ) {
