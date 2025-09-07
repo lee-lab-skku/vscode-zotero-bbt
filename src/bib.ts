@@ -155,7 +155,7 @@ export class BibManager {
                 bibPath = await this.locateBibTex(text);
                 break;
             default:
-                bibPath = null;
+                bibPath = await this.locateWorkspaceBib();
         }
 
         // if no bibliography found, ask user
