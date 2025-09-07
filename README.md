@@ -61,6 +61,7 @@ See [CHANGELOG.md](CHANGELOG.md)
 
 - [ ] Performance optimization
 - [ ] Rewrite `.bib` reader/writer so that it does not require Better Bibtex database.
+- [ ] Support both bibtex and biblatex formats.
 
 ## Notes
 
@@ -69,3 +70,5 @@ This extension began as a fork of [telescope-zotero.nvim](https://github.com/jmb
 The code is heavily inspired by it, but rewritten in TypeScript for VSCode. I do not speak TypeScript, so I drafted the code using Claude and manually fixed the code to make it work. Hence, if you think I did something wrong, you're probably right.
 
 Has not been tested on Windows or linux. If you find any issues, please let me know.
+
+I'm working on this project as a PhD student in my spare time (which is very, very limited, during the semester). So I apologize in advance if I cannot respond to issues or feature requests in a timely manner.
