@@ -94,7 +94,9 @@ export function activate(context: vscode.ExtensionContext) {
                         // Update bibliography file with the extracted entry
                         const bibFile = await bibManager.locateBibFile(fileType);
                         if (bibFile) {
-                            bibManager.updateBibFile(bibFile, citeKey, bibEntry, false); // Don't show message here
+                            // Ensure the entry ends with a newline for proper formatting
+                            const formattedEntry = bibEntry.endsWith('\n') ? bibEntry : bibEntry + '\n';
+                            bibManager.updateBibFile(bibFile, citeKey, formattedEntry, false); // Don't show message here
                             vscode.window.showInformationMessage(`Added @${citeKey} from web source to ${bibFile}`);
                         }
                     } else {
