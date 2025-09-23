@@ -64,6 +64,16 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             if (selected) {
+                // Debug notification to show selected item's group information
+                const selectedItem = selected.item;
+                if (selectedItem.groupID) {
+                    vscode.window.showInformationMessage(
+                        `Selected item group: ${selectedItem.groupName} (ID: ${selectedItem.groupID}, Lib: ${selectedItem.libraryID})`
+                    );
+                } else {
+                    vscode.window.showInformationMessage('Selected item has no group information');
+                }
+
                 // Get current file type
                 const editor = vscode.window.activeTextEditor;
                 if (!editor) {
