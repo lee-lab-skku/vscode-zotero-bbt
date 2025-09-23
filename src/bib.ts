@@ -8,11 +8,47 @@ import {
 } from './helpers';
 
 export class BibManager {
+    // export better bibtex citation using JSON-RPC
+    public async bbtExport(
+        citekey: string,
+        translator: string,
+        libraryID: number
+    ): Promise<string | null> {
+        const url = 'http://localhost:23119/better-bibtex/json-rpc';
+
+        const payload = {
+            jsonrpc: '2.0',
+            method: 'item.export',
+            params: {
+                citekeys: [citekey],
+                translator: translator,
+            },
+            id: libraryID,
+        };
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+            const json = await response.json();
+            return json.result;
+
+        } catch (error) {
+            vscode.window.showErrorMessage('Cannot connect to Better BibTeX server Make sure Zotero is running with Better BibTeX plugin');
+            return null;
+        }
+    }
+
     // Converts a Zotero item to a BibTeX entry
     public entryToBibEntry(item: any): string {
         let bibEntry = '@';
         const citeKey = item.citeKey || '';
-        
+
         if (item.itemType === 'magazineArticle') {
             item.subtype = 'magazine';
         }
@@ -22,7 +58,7 @@ export class BibManager {
         item.itemType = toBibtexType(item.itemType || 'misc');
 
         bibEntry += `${item.itemType}{${citeKey},\n`;
-        
+
         for (const [key, value] of Object.entries(item)) {
             if (key === 'creators') {
                 bibEntry += '  author = {';
@@ -62,7 +98,7 @@ export class BibManager {
                 const urlDate = extractDate(value);
                 if (urlDate) {
                     bibEntry += `  urldate = {${urlDate}},\n`;
-                } 
+                }
             } else if (
                 key !== 'citeKey' &&
                 key !== 'itemType' &&
