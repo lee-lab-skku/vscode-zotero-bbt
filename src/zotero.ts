@@ -86,6 +86,9 @@ export class ZoteroDatabase {
                 const valueIndex = columns.indexOf('value');
                 const typeNameIndex = columns.indexOf('typeName');
                 const pdfKeyIndex = columns.indexOf('pdfKey');
+                const groupIdIndex = columns.indexOf('groupID');
+                const groupNameIndex = columns.indexOf('groupName');
+                const libraryIdIndex = columns.indexOf('libraryID');
 
                 for (const row of values) {
                     const zoteroKey = row[zoteroKeyIndex] as string;
@@ -105,6 +108,13 @@ export class ZoteroDatabase {
 
                     if (row[fieldNameIndex] === 'DOI') {
                         rawItems[zoteroKey].DOI = row[valueIndex];
+                    }
+
+                    // Add group information
+                    if (row[groupIdIndex]) {
+                        rawItems[zoteroKey].groupID = row[groupIdIndex];
+                        rawItems[zoteroKey].groupName = row[groupNameIndex];
+                        rawItems[zoteroKey].libraryID = row[libraryIdIndex];
                     }
                 }
             }
