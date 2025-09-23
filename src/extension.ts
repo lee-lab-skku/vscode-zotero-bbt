@@ -87,6 +87,21 @@ export function activate(context: vscode.ExtensionContext) {
                     const biblatexUrl = zoteroDb.generateBibLatexUrl(selected.item);
                     const biblatexContent = await zoteroDb.fetchBibLatexFile(biblatexUrl);
                     
+                    // Extract the specific entry for this citation key
+                    const bibEntry = zoteroDb.extractBibEntryByCiteKey(biblatexContent, citeKey);
+                    
+                    if (bibEntry) {
+                        // Update bibliography file with the extracted entry
+                        const bibFile = await bibManager.locateBibFile(fileType);
+                        if (bibFile) {
+                            bibManager.updateBibFile(bibFile, citeKey, bibEntry);
+                            vscode.window.showInformationMessage(`Added @${citeKey} from web source to ${bibFile}`);
+                        }
+                    } else {
+                        // Entry not found in web file, fallback to local
+                        throw new Error(`Citation key '${citeKey}' not found in fetched BibLaTeX file`);
+                    }
+                    
                 } catch (error) {
                     // Fallback to original workflow
                     vscode.window.showWarningMessage(`Web fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}. Using local database.`);

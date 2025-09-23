@@ -208,7 +208,7 @@ export class ZoteroDatabase {
             return content;
         } catch (error) {
             if (error instanceof TypeError && error.message.includes('fetch')) {
-                throw new Error('Cannot connect to Better BibTeX server at 127.0.0.1:23119. Make sure Zotero is running with Better BibTeX plugin.');
+                throw new Error('Cannot connect to Better BibTeX server at 127.0.0.1:23119. Make sure Zotero is running with Better BibTeX plugin');
             }
             throw error;
         }
@@ -230,5 +230,62 @@ export class ZoteroDatabase {
         }
         
         return true;
+    }
+
+    /**
+     * Extract a specific BibLaTeX entry by citation key from the content
+     */
+    public extractBibEntryByCiteKey(biblatexContent: string, citeKey: string): string | null {
+        try {
+            // Create regex pattern to match the specific entry
+            // Pattern: @entrytype{citekey, ... } (handles nested braces)
+            const entryPattern = new RegExp(
+                `@\\w+\\s*\\{\\s*${this.escapeRegex(citeKey)}\\s*,([^@]*)(?=@|$)`,
+                'gis'
+            );
+
+            const match = entryPattern.exec(biblatexContent);
+            if (!match) {
+                return null;
+            }
+
+            // Extract the full entry including the opening part
+            let fullEntry = match[0];
+            
+            // Balance braces to ensure we get the complete entry
+            const entryStart = biblatexContent.indexOf(match[0]);
+            let braceCount = 0;
+            let pos = entryStart;
+            let entryEnd = entryStart;
+
+            for (let i = entryStart; i < biblatexContent.length; i++) {
+                const char = biblatexContent[i];
+                if (char === '{') {
+                    braceCount++;
+                } else if (char === '}') {
+                    braceCount--;
+                    if (braceCount === 0) {
+                        entryEnd = i + 1;
+                        break;
+                    }
+                }
+            }
+
+            if (braceCount === 0 && entryEnd > entryStart) {
+                return biblatexContent.substring(entryStart, entryEnd).trim();
+            }
+
+            return null;
+        } catch (error) {
+            handleError(error, `Error extracting BibLaTeX entry for ${citeKey}`);
+            return null;
+        }
+    }
+
+    /**
+     * Escape special regex characters
+     */
+    private escapeRegex(string: string): string {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 }
