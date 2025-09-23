@@ -174,7 +174,7 @@ export class BibManager {
         return bibPath;
     }
 
-    public updateBibFile(bibFile: string, citeKey: string, bibEntry: string): void {
+    public updateBibFile(bibFile: string, citeKey: string, bibEntry: string, showMessage: boolean = true): void {
         try {
             const bibPath = expandPath(bibFile);
 
@@ -187,7 +187,9 @@ export class BibManager {
                 }
                 // Create empty file
                 fs.writeFileSync(bibPath, '');
-                vscode.window.showInformationMessage(`Created new bibliography file at ${bibFile}`);
+                if (showMessage) {
+                    vscode.window.showInformationMessage(`Created new bibliography file at ${bibFile}`);
+                }
             }
 
             // Read file to check if entry already exists
@@ -197,14 +199,22 @@ export class BibManager {
             // Check if entry already exists
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].match(new RegExp(`^@.*{${citeKey},`))) {
-                    vscode.window.showInformationMessage(`Entry for @${citeKey} already exists in bibliography`);
+                    if (showMessage) {
+                        vscode.window.showInformationMessage(`Entry for @${citeKey} already exists in bibliography`);
+                    }
                     return;
                 }
             }
 
+            // Add empty line before new entry if file is not empty
+            const needsEmptyLine = bibContent.trim().length > 0 && !bibContent.trim().endsWith('\n');
+            const entryToAdd = needsEmptyLine ? '\n' + bibEntry : bibEntry;
+
             // Append entry to file
-            fs.appendFileSync(bibPath, bibEntry);
-            vscode.window.showInformationMessage(`Added @${citeKey} to ${bibFile}`);
+            fs.appendFileSync(bibPath, entryToAdd);
+            if (showMessage) {
+                vscode.window.showInformationMessage(`Added @${citeKey} from local database to ${bibFile}`);
+            }
         } catch (error) {
             handleError(error, `Failed to update bibliography file`);
         }
