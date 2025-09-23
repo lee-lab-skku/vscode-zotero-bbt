@@ -114,8 +114,8 @@ export class ZoteroDatabase {
                     if (row[groupIdIndex]) {
                         rawItems[zoteroKey].groupID = row[groupIdIndex];
                         rawItems[zoteroKey].groupName = row[groupNameIndex];
-                        rawItems[zoteroKey].libraryID = row[libraryIdIndex];
                     }
+                    rawItems[zoteroKey].libraryID = row[libraryIdIndex];
                 }
             }
 
