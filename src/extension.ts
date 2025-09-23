@@ -64,15 +64,28 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             if (selected) {
-                // Debug notification to show selected item's group information
+                // Generate BibLaTeX URL based on library ID and group information
                 const selectedItem = selected.item;
-                if (selectedItem.groupID) {
-                    vscode.window.showInformationMessage(
-                        `Selected item group: ${selectedItem.groupName} (ID: ${selectedItem.groupID}, Lib: ${selectedItem.libraryID})`
-                    );
+                let biblatexUrl = '';
+                let debugMessage = '';
+
+                if (selectedItem.libraryID === 1) {
+                    // Case 1: Personal library (libraryID == 1)
+                    biblatexUrl = 'http://127.0.0.1:23119/better-bibtex/export?/library;id:1/My%20Library.biblatex';
+                    debugMessage = `Personal library item - URL: ${biblatexUrl}`;
+                } else if (selectedItem.groupID && selectedItem.groupName) {
+                    // Case 2: Group library with valid group info
+                    const encodedGroupName = encodeURIComponent(selectedItem.groupName);
+                    biblatexUrl = `http://127.0.0.1:23119/better-bibtex/export?/group;id:${selectedItem.groupID}/${encodedGroupName}.biblatex`;
+                    debugMessage = `Group item: ${selectedItem.groupName} (ID: ${selectedItem.groupID}, Lib: ${selectedItem.libraryID}) - URL: ${biblatexUrl}`;
                 } else {
-                    vscode.window.showInformationMessage('Selected item has no group information');
+                    // Invalid case - no group info for non-personal library
+                    debugMessage = `Error: Item from library ${selectedItem.libraryID} has no group information`;
                 }
+
+                // Show debug notification with URL
+                vscode.window.showInformationMessage(debugMessage);
+
 
                 // Get current file type
                 const editor = vscode.window.activeTextEditor;
