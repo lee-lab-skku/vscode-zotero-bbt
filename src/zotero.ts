@@ -168,4 +168,67 @@ export class ZoteroDatabase {
             this.bbt = null;
         }
     }
+
+    /**
+     * Generate BibLaTeX URL based on item's library and group information
+     */
+    public generateBibLatexUrl(item: any): string {
+        const baseUrl = 'http://127.0.0.1:23119/better-bibtex/export?';
+        
+        if (item.libraryID === 1) {
+            // Personal library case
+            return `${baseUrl}/library;id:1/My%20Library.biblatex`;
+        } else if (item.groupID && item.groupName) {
+            // Group library case
+            const encodedGroupName = encodeURIComponent(item.groupName);
+            return `${baseUrl}/group;id:${item.groupID}/${encodedGroupName}.biblatex`;
+        } else {
+            throw new Error(`Cannot generate URL: Item from library ${item.libraryID} has no group information`);
+        }
+    }
+
+    /**
+     * Fetch BibLaTeX file from Better BibTeX web endpoint
+     */
+    public async fetchBibLatexFile(url: string): Promise<string> {
+        try {
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const content = await response.text();
+            
+            // Validate if it's a proper BibLaTeX file
+            if (!this.isValidBibLatexContent(content)) {
+                throw new Error('Retrieved content is not a valid BibLaTeX file');
+            }
+            
+            return content;
+        } catch (error) {
+            if (error instanceof TypeError && error.message.includes('fetch')) {
+                throw new Error('Cannot connect to Better BibTeX server at 127.0.0.1:23119. Make sure Zotero is running with Better BibTeX plugin.');
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Validate if content is a proper BibLaTeX file
+     */
+    private isValidBibLatexContent(content: string): boolean {
+        // Basic validation checks
+        if (!content || content.trim().length === 0) {
+            return false;
+        }
+        
+        // Check for BibLaTeX entry patterns
+        const bibEntryPattern = /@\w+\s*\{[^,]+,/;
+        if (!bibEntryPattern.test(content)) {
+            return false;
+        }
+        
+        return true;
+    }
 }

@@ -82,11 +82,20 @@ export function activate(context: vscode.ExtensionContext) {
                     editBuilder.insert(editor.selection.active, formattedCitation);
                 });
 
-                // Update bibliography file
-                const bibFile = await bibManager.locateBibFile(fileType);
-                if (bibFile) {
-                    const bibEntry = bibManager.entryToBibEntry(selected.item);
-                    bibManager.updateBibFile(bibFile, citeKey, bibEntry);
+                // Try to fetch BibLaTeX from web, fallback to local SQLite
+                try {
+                    const biblatexUrl = zoteroDb.generateBibLatexUrl(selected.item);
+                    const biblatexContent = await zoteroDb.fetchBibLatexFile(biblatexUrl);
+                    
+                } catch (error) {
+                    // Fallback to original workflow
+                    vscode.window.showWarningMessage(`Web fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}. Using local database.`);
+                    
+                    const bibFile = await bibManager.locateBibFile(fileType);
+                    if (bibFile) {
+                        const bibEntry = bibManager.entryToBibEntry(selected.item);
+                        bibManager.updateBibFile(bibFile, citeKey, bibEntry);
+                    }
                 }
             }
         } catch (error) {
