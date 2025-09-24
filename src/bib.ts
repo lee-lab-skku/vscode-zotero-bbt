@@ -35,8 +35,8 @@ export class BibManager {
             params: {
                 citekeys: [item.citeKey],
                 translator: this.translator,
-            },
-            id: item.libraryID,
+                libraryID: item.libraryID
+            }
         };
 
         try {
