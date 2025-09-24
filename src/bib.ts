@@ -9,7 +9,12 @@ import {
 } from './helpers';
 
 export class BibManager {
-    // export better bibtex citation using JSON-RPC
+    /**
+     * Export better bibtex citation using JSON-RPC
+     * @param item The Zotero item to export.
+     * @param translator The Better BibTeX translator to use.
+     * @returns The exported Bib(La)TeX entry.
+     */
     public async bbtExport(
         item: any,
         translator: string,
@@ -44,7 +49,12 @@ export class BibManager {
         }
     }
 
-    // Converts a Zotero item to a BibTeX entry
+    /**
+     * Converts a Zotero item to a BibTeX entry
+     * @param item The Zotero item to export.
+     * @returns The exported Bib(La)TeX entry.
+     */
+    
     public entryToBibEntry(item: any): string {
         let bibEntry = '@';
         const citeKey = item.citeKey || '';
