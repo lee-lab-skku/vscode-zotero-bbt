@@ -8,6 +8,11 @@ on:
     types: [ closed ]
   workflow_dispatch: # Allow manual trigger
 
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
 jobs:
   check-version:
     runs-on: ubuntu-latest
@@ -84,18 +89,29 @@ jobs:
 
       - name: Package extension
         run: |
-          # Package extension with explicit output name
-          vsce package --out extension.vsix || {
-            echo "Failed with vsce package, trying alternative approach..."
-            # Alternative: use npx with latest version
-            npx @vscode/vsce@latest package --out extension.vsix
+          # Get version and name from package.json for proper filename
+          VERSION=$(node -p "require('./package.json').version")
+          NAME=$(node -p "require('./package.json').name")
+          VSIX_NAME="${NAME}-${VERSION}.vsix"
+          
+          echo "📦 Creating VSIX: $VSIX_NAME"
+          echo "🔍 Repository info: ${{ github.repository }}"
+          echo "🏷️ Version: $VERSION"
+          
+          # Package extension with version-aware filename
+          vsce package --out "$VSIX_NAME" || {
+            echo "❌ Failed with vsce package, trying alternative approach..."
+            npx @vscode/vsce@latest package --out "$VSIX_NAME"
           }
+          
           # Verify the file was created
-          ls -la extension.vsix
+          ls -la "$VSIX_NAME"
+          
           # Set filename for later steps
-          echo "VSIX_FILENAME=extension.vsix" >> $GITHUB_ENV
+          echo "VSIX_FILENAME=$VSIX_NAME" >> $GITHUB_ENV
 
       - name: Create Release
+        id: release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -111,14 +127,25 @@ jobs:
             ### Installation
             Download the `.vsix` file and install it in VSCode using:
             ```
-            code --install-extension extension.vsix
+            code --install-extension ${{ env.VSIX_FILENAME }}
             ```
             
             Or install via VSCode UI: Extensions → Install from VSIX...
+            
+            ### What's New
+            Check the [CHANGELOG.md](CHANGELOG.md) for detailed changes.
           files: |
-            extension.vsix
+            ${{ env.VSIX_FILENAME }}
           draft: false
           prerelease: false
+
+      - name: Upload VSIX as Artifact (Fallback)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-zotero-${{ needs.check-version.outputs.package-version }}
+          path: ${{ env.VSIX_FILENAME }}
+          retention-days: 30
 
       - name: Publish to VSCode Marketplace (Optional)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
