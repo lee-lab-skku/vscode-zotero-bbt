@@ -129,13 +129,7 @@ export function activate(context: vscode.ExtensionContext) {
                     
                 } catch (error) {
                     // Fallback to original workflow
-                    vscode.window.showWarningMessage(`Web fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}. Using local database.`);
-                    
-                    const bibFile = await bibManager.locateBibFile(fileType);
-                    if (bibFile) {
-                        const bibEntry = bibManager.entryToBibEntry(selected.item);
-                        bibManager.updateBibFile(bibFile, citeKey, bibEntry);
-                    }
+                    vscode.window.showWarningMessage(`Web fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
                 }
             }
         } catch (error) {

@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as vscode from 'vscode';
 import initSqlJs, { Database } from 'sql.js';
-import { queryBbt, queryItems, queryCreators} from './queries';
+import { queryBbt, queryItems } from './queries';
 import { handleError, extractYear } from './helpers';
 
 interface DatabaseOptions {
@@ -61,10 +61,9 @@ export class ZoteroDatabase {
 
         try {
             // Execute queries
-            const [sqlBbt, sqlItems, sqlCreators] = [
+            const [sqlBbt, sqlItems] = [
                 this.bbt.exec(queryBbt),
-                this.db.exec(queryItems),
-                this.db.exec(queryCreators)
+                this.db.exec(queryItems)
             ];
 
             // Process results
@@ -82,10 +81,6 @@ export class ZoteroDatabase {
             if (sqlItems.length > 0) {
                 const { columns, values } = sqlItems[0];
                 const zoteroKeyIndex = columns.indexOf('zoteroKey');
-                const fieldNameIndex = columns.indexOf('fieldName');
-                const valueIndex = columns.indexOf('value');
-                const typeNameIndex = columns.indexOf('typeName');
-                const pdfKeyIndex = columns.indexOf('pdfKey');
                 const groupIdIndex = columns.indexOf('groupID');
                 const groupNameIndex = columns.indexOf('groupName');
                 const libraryIdIndex = columns.indexOf('libraryID');
@@ -99,42 +94,13 @@ export class ZoteroDatabase {
                         };
                     }
 
-                    rawItems[zoteroKey][row[fieldNameIndex] as string] = row[valueIndex];
-                    rawItems[zoteroKey].itemType = row[typeNameIndex];
-
-                    if (row[pdfKeyIndex]) {
-                        rawItems[zoteroKey].pdfKey = row[pdfKeyIndex];
-                    }
-
-                    if (row[fieldNameIndex] === 'DOI') {
-                        rawItems[zoteroKey].DOI = row[valueIndex];
-                    }
-
                     // Add group information
                     if (row[groupIdIndex]) {
                         rawItems[zoteroKey].groupID = row[groupIdIndex];
                         rawItems[zoteroKey].groupName = row[groupNameIndex];
                     }
-                    rawItems[zoteroKey].libraryID = row[libraryIdIndex];
-                }
-            }
-
-            if (sqlCreators.length > 0) {
-                const { columns, values } = sqlCreators[0];
-                const zoteroKeyIndex = columns.indexOf('zoteroKey');
-                const orderIndexIndex = columns.indexOf('orderIndex');
-                const firstNameIndex = columns.indexOf('firstName');
-                const lastNameIndex = columns.indexOf('lastName');
-                const creatorTypeIndex = columns.indexOf('creatorType');
-
-                for (const row of values) {
-                    const zoteroKey = row[zoteroKeyIndex] as string;
-                    if (rawItems[zoteroKey]) {
-                        rawItems[zoteroKey].creators[row[orderIndexIndex] as number] = {
-                            firstName: row[firstNameIndex],
-                            lastName: row[lastNameIndex],
-                            creatorType: row[creatorTypeIndex]
-                        };
+                    if (row[libraryIdIndex]) {
+                        rawItems[zoteroKey].libraryID = row[libraryIdIndex];
                     }
                 }
             }
