@@ -3,15 +3,9 @@ name: Build and Release VSCode Extension
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
-    types: [ closed ]
-  workflow_dispatch: # Allow manual trigger
 
 permissions:
   contents: write
-  issues: read
-  pull-requests: read
 
 jobs:
   check-version:
@@ -114,7 +108,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ needs.check-version.outputs.package-version }}
-          name: Release v${{ needs.check-version.outputs.package-version }}
+          name: v${{ needs.check-version.outputs.package-version }}
           body: |
             ## VSCode Zotero Extension v${{ needs.check-version.outputs.package-version }}
             
