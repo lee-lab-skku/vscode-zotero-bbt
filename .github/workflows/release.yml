@@ -63,14 +63,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
       - name: Install VSCE
-        run: npm install -g @vscode/vsce
+        run: |
+          # Install latest version with better Node.js compatibility
+          npm install -g @vscode/vsce@latest
+          # Verify installation
+          vsce --version
 
       - name: Lint code
         run: npm run lint
@@ -80,17 +84,24 @@ jobs:
 
       - name: Package extension
         run: |
-          vsce package
-          echo "VSIX_FILENAME=$(ls *.vsix)" >> $GITHUB_ENV
+          # Package extension with explicit output name
+          vsce package --out extension.vsix || {
+            echo "Failed with vsce package, trying alternative approach..."
+            # Alternative: use npx with latest version
+            npx @vscode/vsce@latest package --out extension.vsix
+          }
+          # Verify the file was created
+          ls -la extension.vsix
+          # Set filename for later steps
+          echo "VSIX_FILENAME=extension.vsix" >> $GITHUB_ENV
 
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ needs.check-version.outputs.package-version }}
-          release_name: Release v${{ needs.check-version.outputs.package-version }}
+          name: Release v${{ needs.check-version.outputs.package-version }}
           body: |
             ## VSCode Zotero Extension v${{ needs.check-version.outputs.package-version }}
             
@@ -100,22 +111,30 @@ jobs:
             ### Installation
             Download the `.vsix` file and install it in VSCode using:
             ```
-            code --install-extension ${{ env.VSIX_FILENAME }}
+            code --install-extension extension.vsix
             ```
             
             Or install via VSCode UI: Extensions → Install from VSIX...
+          files: |
+            extension.vsix
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+      - name: Publish to VSCode Marketplace (Optional)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ env.VSIX_FILENAME }}
-          asset_name: ${{ env.VSIX_FILENAME }}
-          asset_content_type: application/zip
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -n "$VSCE_PAT" ]; then
+            echo "🚀 Publishing to VSCode Marketplace..."
+            vsce publish -p $VSCE_PAT || npx @vscode/vsce@latest publish -p $VSCE_PAT
+          else
+            echo "📝 To publish to VSCode Marketplace:"
+            echo "1. Get Personal Access Token from: https://dev.azure.com/"
+            echo "2. Add it as repository secret named 'VSCE_PAT'"
+            echo "3. Re-run this workflow or push a new commit"
+          fi
 
   notify-skip:
     needs: check-version
