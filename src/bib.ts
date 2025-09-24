@@ -4,7 +4,6 @@ import * as path from 'path';
 import {
     expandPath,
     handleError,
-    extractDate,
     isValidBibEntry,
     formatCitation
 } from './helpers';
@@ -57,81 +56,6 @@ export class BibManager {
             vscode.window.showErrorMessage('Cannot connect to Better BibTeX. Make sure Zotero is running!');
             return '';
         }
-    }
-
-    /**
-     * Converts a Zotero item to a BibTeX entry
-     * @param item The Zotero item to export.
-     * @returns The exported Bib(La)TeX entry.
-     */
-
-    public entryToBibEntry(item: any): string {
-        let bibEntry = '@';
-        const citeKey = item.citeKey || '';
-
-        if (item.itemType === 'magazineArticle') {
-            item.subtype = 'magazine';
-        }
-        if (item.itemType === 'newspaperArticle') {
-            item.subtype = 'newspaper';
-        }
-        item.itemType = toBibtexType(item.itemType || 'misc');
-
-        bibEntry += `${item.itemType}{${citeKey},\n`;
-
-        for (const [key, value] of Object.entries(item)) {
-            if (key === 'creators') {
-                bibEntry += '  author = {';
-                let author = '';
-
-                for (const creator of value as any[]) {
-                    author += `${creator.lastName || ''}, ${creator.firstName || ''} and `;
-                }
-
-                // Remove trailing ' and '
-                author = author.slice(0, -5);
-                bibEntry += `${author}},\n`;
-            } else if (
-                item.itemType === 'article' &&
-                key === 'publicationTitle'
-            ) {
-                bibEntry += `  journal = {${value}},\n`;
-            } else if (
-                item.itemType === 'inproceedings' &&
-                key === 'proceedingsTitle'
-            ) {
-                bibEntry += `  booktitle = {${value}},\n`;
-            } else if (
-                key === 'date' &&
-                typeof value === 'string'
-            ) {
-                // only add date if it is in YYYY-MM-DD format
-                const date = extractDate(value);
-                if (date) {
-                    bibEntry += `  date = {${date}},\n`;
-                }
-            } else if (
-                key === 'accessDate' &&
-                typeof value === 'string'
-            ) {
-                // check if value has YYYY-MM-DD format if so, add match as urldate
-                const urlDate = extractDate(value);
-                if (urlDate) {
-                    bibEntry += `  urldate = {${urlDate}},\n`;
-                }
-            } else if (
-                key !== 'citeKey' &&
-                key !== 'itemType' &&
-                key !== 'attachment' &&
-                key !== 'abstractNote' &&
-                typeof value === 'string'
-            ) {
-                bibEntry += `  ${key} = {${value}},\n`;
-            }
-        }
-
-        bibEntry += '}\n';
-        return bibEntry;
     }
 
     private async locateBibMd(text: string): Promise<string | null> {
@@ -352,70 +276,5 @@ export class BibManager {
         editor.edit(editBuilder => {
             editBuilder.insert(editor.selection.active, formattedCitation);
         });
-    }
-}
-
-function toBibtexType(itemType: string): string {
-    switch (itemType) {
-        case 'journalArticle':
-        case 'magazineArticle':
-        case 'newspaperArticle':
-        case 'preprint':
-            return 'article';
-        case 'artwork':
-            return 'artwork';
-        case 'audioRecording':
-        case 'radioBroadcast':
-        case 'podcast':
-            return 'audio';
-        case 'book':
-            return 'book';
-        case 'dataset':
-            return 'dataset';
-        case 'bookSection':
-            return 'incollection';
-        case 'conferencePaper':
-            return 'inproceedings';
-        case 'dictionaryEntry':
-        case 'encyclopediaArticle':
-            return 'inreference';
-        case 'case':
-        case 'gazette':
-        case 'hearing':
-            return 'jurisdiction';
-        case 'bill':
-        case 'statute':
-            return 'legislation';
-        case 'email':
-        case 'letter':
-            return 'letter';
-        case 'document':
-        case 'instantMessage':
-        case 'interview':
-        case 'map':
-            return 'misc';
-        case 'blogPost':
-        case 'forumPost':
-        case 'webpage':
-            return 'online';
-        case 'patent':
-            return 'patent';
-        case 'report':
-            return 'report';
-        case 'computerProgram':
-            return 'software';
-        case 'standard':
-            return 'standard';
-        case 'thesis':
-            return 'thesis';
-        case 'manuscript':
-        case 'presentation':
-            return 'unpublished';
-        case 'film':
-        case 'tvBroadcast':
-        case 'videoRecording':
-            return 'video';
-        default:
-            return itemType;
     }
 }
