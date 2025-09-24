@@ -46,6 +46,12 @@
           "type": "string",
           "default": "~/Zotero/better-bibtex.sqlite",
           "description": "Path to Better BibTeX database file"
+        },
+        "zotero.betterBibtexTranslator": {
+          "type": "string",
+          "default": "Better BibLaTeX",
+          "enum": ["Better BibTeX", "Better BibLaTeX"],
+          "description": "Better BibTeX translator to use for exporting entries"
         }
       }
     }

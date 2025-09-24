@@ -15,9 +15,17 @@ export class BibManager {
      * @param translator The Better BibTeX translator to use.
      * @returns The exported Bib(La)TeX entry.
      */
+    
+    private translator: string;
+    
+    constructor() {
+        const config = vscode.workspace.getConfiguration('zotero');
+        const translator = config.get<string>('betterBibtexTranslator', 'Better BibLaTeX');
+        this.translator = translator;
+    }
+
     public async bbtExport(
-        item: any,
-        translator: string,
+        item: any
     ): Promise<string> {
         const url = 'http://localhost:23119/better-bibtex/json-rpc';
 
@@ -26,7 +34,7 @@ export class BibManager {
             method: 'item.export',
             params: {
                 citekeys: [item.citeKey],
-                translator: translator,
+                translator: this.translator,
             },
             id: item.libraryID,
         };

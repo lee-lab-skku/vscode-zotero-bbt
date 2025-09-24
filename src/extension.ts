@@ -11,9 +11,6 @@ import {
 
 export function activate(context: vscode.ExtensionContext) {
 
-    // initialize managers
-    const bibManager = new BibManager();
-
     const searchLibrary = vscode.commands.registerCommand('zotero.searchLibrary', async () => {
         // initialize configuration
         const zoteroDb = initZoteroDb();
@@ -72,12 +69,12 @@ export function activate(context: vscode.ExtensionContext) {
                     editBuilder.insert(editor.selection.active, formattedCitation);
                 });
 
+                const bibManager = new BibManager();
                 const bibFile = await bibManager.locateBibFile(fileType);
                 if (bibFile) {
                     // Try to fetch BibLaTeX from web, fallback to local SQLite
                     try {
-                        // const bibEntry = await bibManager.bbtExport(selected.item, 'Better BibTex');
-                        const bibEntry = await bibManager.bbtExport(selected.item, 'Better BibLaTex');
+                        const bibEntry = await bibManager.bbtExport(selected.item);
                         bibManager.updateBibFile(bibFile, citeKey, bibEntry);
 
                     } catch (error) {
@@ -129,7 +126,10 @@ export function activate(context: vscode.ExtensionContext) {
             if (citeKey.startsWith('@')) {
                 citeKey = citeKey.substring(1);
             }
+
+            const bibManager = new BibManager();
             const bibFile = await bibManager.locateBibFile(fileType);
+            
             if (bibFile) {
                 const openOptions = zoteroDb.getOpenOptions(citeKey);
                 if (openOptions.length === 0) {
