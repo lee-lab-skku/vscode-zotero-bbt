@@ -24,6 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
             zoteroDbPath: expandPath(zoteroDbPath),
             betterBibtexDbPath: expandPath(betterBibtexDbPath),
         });
+
         try {
             // Connect to database
             const connected = await zoteroDb.connect();
@@ -82,45 +83,29 @@ export function activate(context: vscode.ExtensionContext) {
                     editBuilder.insert(editor.selection.active, formattedCitation);
                 });
 
-                // Try to fetch BibLaTeX from web, fallback to local SQLite
-                try {
-                    const biblatexUrl = zoteroDb.generateBibLatexUrl(selected.item);
-                    const biblatexContent = await zoteroDb.fetchBibLatexFile(biblatexUrl);
-                    
-                    // Extract the specific entry for this citation key
-                    const bibEntry = zoteroDb.extractBibEntryByCiteKey(biblatexContent, citeKey);
-                    
-                    if (bibEntry) {
-                        // Update bibliography file with the extracted entry
-                        const bibFile = await bibManager.locateBibFile(fileType);
-                        if (bibFile) {
-                            // Ensure the entry ends with a newline for proper formatting
-                            const formattedEntry = bibEntry.endsWith('\n') ? bibEntry : bibEntry + '\n';
-                            bibManager.updateBibFile(bibFile, citeKey, formattedEntry, false); // Don't show message here
-                            vscode.window.showInformationMessage(`Added @${citeKey} from web source to ${bibFile}`);
-                        }
-                    } else {
-                        // Entry not found in web file, fallback to local
-                        throw new Error(`Citation key '${citeKey}' not found in fetched BibLaTeX file`);
-                    }
-                    
-                } catch (error) {
-                    // Fallback to original workflow
-                    vscode.window.showWarningMessage(`Web fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}. Using local database.`);
-                    
-                    const bibFile = await bibManager.locateBibFile(fileType);
-                    if (bibFile) {
+                const bibFile = await bibManager.locateBibFile(fileType);
+                if (bibFile) {
+                    // Try to fetch BibLaTeX from web, fallback to local SQLite
+                    try {
+                        // const bibEntry = await bibManager.bbtExport(selected.item, 'Better BibTex');
+                        const bibEntry = await bibManager.bbtExport(selected.item, 'Better BibLaTex');
+                        bibManager.updateBibFile(bibFile, citeKey, bibEntry);
+
+                    } catch (error) {
+                        // Fallback to original workflow
+                        vscode.window.showWarningMessage(`Web fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}. Using local database.`);
+
                         const bibEntry = bibManager.entryToBibEntry(selected.item);
                         bibManager.updateBibFile(bibFile, citeKey, bibEntry);
                     }
                 }
             }
         } catch (error) {
-            handleError(error, `Error occurred while searching Zotero library`);
-        } finally {
-            zoteroDb.close();
-        }
-    });
+                    handleError(error, `Error occurred while searching Zotero library`);
+                } finally {
+                    zoteroDb.close();
+                }
+            });
     context.subscriptions.push(searchLibrary);
 
     const openItem = vscode.commands.registerCommand('zotero.openItem', async () => {
@@ -161,13 +146,13 @@ export function activate(context: vscode.ExtensionContext) {
                 } else {
                     // Show QuickPick for multiple options
                     const quickPickItems = openOptions.map((option, index) => ({
-                        label: option.type === 'pdf' ? 'Open PDF' : 
-                               option.type === 'doi' ? 'Open DOI link' : 
-                               option.type === 'zotero' ? 'Open in Zotero' : '',
+                        label: option.type === 'pdf' ? 'Open PDF' :
+                            option.type === 'doi' ? 'Open DOI link' :
+                                option.type === 'zotero' ? 'Open in Zotero' : '',
                         option: option,
                         index: index
                     }));
-                    
+
                     const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
                         placeHolder: 'Choose action'
                     });

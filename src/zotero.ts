@@ -1,8 +1,12 @@
 import * as fs from 'fs/promises';
 import * as vscode from 'vscode';
 import initSqlJs, { Database } from 'sql.js';
-import { queryBbt, queryItems, queryCreators} from './queries';
-import { handleError, extractYear } from './helpers';
+import { queryBbt, queryItems, queryCreators } from './queries';
+import {
+    handleError,
+    extractYear,
+    isValidBibEntry
+} from './helpers';
 
 interface DatabaseOptions {
     zoteroDbPath: string;
@@ -85,9 +89,6 @@ export class ZoteroDatabase {
                 const fieldNameIndex = columns.indexOf('fieldName');
                 const valueIndex = columns.indexOf('value');
                 const typeNameIndex = columns.indexOf('typeName');
-                const pdfKeyIndex = columns.indexOf('pdfKey');
-                const groupIdIndex = columns.indexOf('groupID');
-                const groupNameIndex = columns.indexOf('groupName');
                 const libraryIdIndex = columns.indexOf('libraryID');
 
                 for (const row of values) {
@@ -101,20 +102,6 @@ export class ZoteroDatabase {
 
                     rawItems[zoteroKey][row[fieldNameIndex] as string] = row[valueIndex];
                     rawItems[zoteroKey].itemType = row[typeNameIndex];
-
-                    if (row[pdfKeyIndex]) {
-                        rawItems[zoteroKey].pdfKey = row[pdfKeyIndex];
-                    }
-
-                    if (row[fieldNameIndex] === 'DOI') {
-                        rawItems[zoteroKey].DOI = row[valueIndex];
-                    }
-
-                    // Add group information
-                    if (row[groupIdIndex]) {
-                        rawItems[zoteroKey].groupID = row[groupIdIndex];
-                        rawItems[zoteroKey].groupName = row[groupNameIndex];
-                    }
                     rawItems[zoteroKey].libraryID = row[libraryIdIndex];
                 }
             }
@@ -174,7 +161,7 @@ export class ZoteroDatabase {
      */
     public generateBibLatexUrl(item: any): string {
         const baseUrl = 'http://127.0.0.1:23119/better-bibtex/export?';
-        
+
         if (item.libraryID === 1) {
             // Personal library case
             return `${baseUrl}/library;id:1/My%20Library.biblatex`;
@@ -193,18 +180,18 @@ export class ZoteroDatabase {
     public async fetchBibLatexFile(url: string): Promise<string> {
         try {
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const content = await response.text();
-            
+
             // Validate if it's a proper BibLaTeX file
-            if (!this.isValidBibLatexContent(content)) {
+            if (!isValidBibEntry(content)) {
                 throw new Error('Retrieved content is not a valid BibLaTeX file');
             }
-            
+
             return content;
         } catch (error) {
             if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -214,23 +201,6 @@ export class ZoteroDatabase {
         }
     }
 
-    /**
-     * Validate if content is a proper BibLaTeX file
-     */
-    private isValidBibLatexContent(content: string): boolean {
-        // Basic validation checks
-        if (!content || content.trim().length === 0) {
-            return false;
-        }
-        
-        // Check for BibLaTeX entry patterns
-        const bibEntryPattern = /@\w+\s*\{[^,]+,/;
-        if (!bibEntryPattern.test(content)) {
-            return false;
-        }
-        
-        return true;
-    }
 
     /**
      * Extract a specific BibLaTeX entry by citation key from the content
@@ -251,7 +221,7 @@ export class ZoteroDatabase {
 
             // Extract the full entry including the opening part
             let fullEntry = match[0];
-            
+
             // Balance braces to ensure we get the complete entry
             const entryStart = biblatexContent.indexOf(match[0]);
             let braceCount = 0;

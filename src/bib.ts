@@ -4,26 +4,26 @@ import * as path from 'path';
 import {
     expandPath,
     handleError,
-    extractDate
+    extractDate,
+    isValidBibEntry
 } from './helpers';
 
 export class BibManager {
     // export better bibtex citation using JSON-RPC
     public async bbtExport(
-        citekey: string,
+        item: any,
         translator: string,
-        libraryID: number
-    ): Promise<string | null> {
+    ): Promise<string> {
         const url = 'http://localhost:23119/better-bibtex/json-rpc';
 
         const payload = {
             jsonrpc: '2.0',
             method: 'item.export',
             params: {
-                citekeys: [citekey],
+                citekeys: [item.citeKey],
                 translator: translator,
             },
-            id: libraryID,
+            id: item.libraryID,
         };
 
         try {
@@ -40,7 +40,7 @@ export class BibManager {
 
         } catch (error) {
             vscode.window.showErrorMessage('Cannot connect to Better BibTeX server Make sure Zotero is running with Better BibTeX plugin');
-            return null;
+            return '';
         }
     }
 
@@ -210,7 +210,13 @@ export class BibManager {
         return bibPath;
     }
 
-    public updateBibFile(bibFile: string, citeKey: string, bibEntry: string, showMessage: boolean = true): void {
+    public updateBibFile(bibFile: string, citeKey: string, bibEntry: string): void {
+        // check if bibEntry is valid
+        if (!isValidBibEntry(bibEntry)) {
+            vscode.window.showErrorMessage('Invalid BibLaTeX entry. Not updating bibliography file.');
+            return;
+        }
+
         try {
             const bibPath = expandPath(bibFile);
 
@@ -223,9 +229,7 @@ export class BibManager {
                 }
                 // Create empty file
                 fs.writeFileSync(bibPath, '');
-                if (showMessage) {
-                    vscode.window.showInformationMessage(`Created new bibliography file at ${bibFile}`);
-                }
+                vscode.window.showInformationMessage(`Created new bibliography file at ${bibFile}`);
             }
 
             // Read file to check if entry already exists
@@ -235,9 +239,7 @@ export class BibManager {
             // Check if entry already exists
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].match(new RegExp(`^@.*{${citeKey},`))) {
-                    if (showMessage) {
-                        vscode.window.showInformationMessage(`Entry for @${citeKey} already exists in bibliography`);
-                    }
+                    vscode.window.showInformationMessage(`Entry for @${citeKey} already exists in bibliography`);
                     return;
                 }
             }
@@ -248,9 +250,7 @@ export class BibManager {
 
             // Append entry to file
             fs.appendFileSync(bibPath, entryToAdd);
-            if (showMessage) {
-                vscode.window.showInformationMessage(`Added @${citeKey} from local database to ${bibFile}`);
-            }
+            vscode.window.showInformationMessage(`Added @${citeKey} from local database to ${bibFile}`);
         } catch (error) {
             handleError(error, `Failed to update bibliography file`);
         }

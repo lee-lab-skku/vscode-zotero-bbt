@@ -15,9 +15,6 @@ export const queryItems = `
                     fields.fieldName,
                     parentItemDataValues.value,
                     itemTypes.typeName,
-                    attachment_items.key AS pdfKey,
-                    groups.groupID,
-                    groups.name as groupName,
                     items.libraryID
                 FROM
                     items
@@ -27,9 +24,8 @@ export const queryItems = `
                     INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
                     INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
                     INNER JOIN itemTypes ON itemTypes.itemTypeID = items.itemTypeID
-                    LEFT JOIN itemAttachments ON items.itemID = itemAttachments.parentItemID AND itemAttachments.contentType = 'application/pdf'
-                    LEFT JOIN items attachment_items ON itemAttachments.itemID = attachment_items.itemID
-                    LEFT JOIN groups ON groups.libraryID = items.libraryID
+				WHERE
+					fields.fieldName IN ('title', 'date');
             `;
 
 // query for creators
