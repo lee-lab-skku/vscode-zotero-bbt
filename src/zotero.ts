@@ -4,7 +4,6 @@ import initSqlJs, { Database } from 'sql.js';
 import {
     queryBbt,
     queryItems,
-    queryCreators,
     queryZoteroKey,
     queryPdfByZoteroKey,
     queryDoiByZoteroKey
@@ -81,75 +80,55 @@ export class ZoteroDatabase {
 
         try {
             // Execute queries
-            const [sqlBbt, sqlItems, sqlCreators] = [
+            const [sqlBbt, sqlItems] = [
                 this.bbt.exec(queryBbt),
-                this.db.exec(queryItems),
-                this.db.exec(queryCreators)
+                this.db.exec(queryItems)
             ];
 
             // Process results
-            const bbtCitekeys: Record<string, string> = {};
+            const items: any[] = [];
+            
+            // Get BBT data indexed by zoteroKey
+            const bbtData: Record<string, string> = {};
             if (sqlBbt.length > 0) {
                 const { columns, values } = sqlBbt[0];
                 const zoteroKeyIndex = columns.indexOf('zoteroKey');
                 const citeKeyIndex = columns.indexOf('citeKey');
+                
                 for (const row of values) {
-                    bbtCitekeys[row[zoteroKeyIndex] as string] = row[citeKeyIndex] as string;
+                    const zoteroKey = row[zoteroKeyIndex] as string;
+                    const citeKey = row[citeKeyIndex] as string;
+                    bbtData[zoteroKey] = citeKey;
                 }
             }
-
-            const rawItems: Record<string, any> = {};
+            
+            // Process Zotero items and combine with BBT data
             if (sqlItems.length > 0) {
                 const { columns, values } = sqlItems[0];
                 const zoteroKeyIndex = columns.indexOf('zoteroKey');
-                const fieldNameIndex = columns.indexOf('fieldName');
-                const valueIndex = columns.indexOf('value');
-                const typeNameIndex = columns.indexOf('typeName');
                 const libraryIdIndex = columns.indexOf('libraryID');
-
-                for (const row of values) {
-                    const zoteroKey = row[zoteroKeyIndex] as string;
-                    if (!rawItems[zoteroKey]) {
-                        rawItems[zoteroKey] = {
-                            creators: [],
-                            zoteroKey: zoteroKey
-                        };
-                    }
-
-                    rawItems[zoteroKey][row[fieldNameIndex] as string] = row[valueIndex];
-                    rawItems[zoteroKey].itemType = row[typeNameIndex];
-                    rawItems[zoteroKey].libraryID = row[libraryIdIndex];
-                }
-            }
-
-            if (sqlCreators.length > 0) {
-                const { columns, values } = sqlCreators[0];
-                const zoteroKeyIndex = columns.indexOf('zoteroKey');
-                const orderIndexIndex = columns.indexOf('orderIndex');
                 const firstNameIndex = columns.indexOf('firstName');
                 const lastNameIndex = columns.indexOf('lastName');
-                const creatorTypeIndex = columns.indexOf('creatorType');
-
+                const titleIndex = columns.indexOf('title');
+                const dateIndex = columns.indexOf('date');
+                
                 for (const row of values) {
                     const zoteroKey = row[zoteroKeyIndex] as string;
-                    if (rawItems[zoteroKey]) {
-                        rawItems[zoteroKey].creators[row[orderIndexIndex] as number] = {
+                    const citeKey = bbtData[zoteroKey];
+                    
+                    if (citeKey) {
+                        const item = {
+                            zoteroKey: zoteroKey,
+                            citeKey: citeKey,
+                            libraryID: row[libraryIdIndex],
                             firstName: row[firstNameIndex],
                             lastName: row[lastNameIndex],
-                            creatorType: row[creatorTypeIndex]
+                            title: row[titleIndex],
+                            year: extractYear(row[dateIndex] as string || '')
                         };
+                        
+                        items.push(item);
                     }
-                }
-            }
-
-            // Build final items array with citeKeys
-            const items: any[] = [];
-            for (const [zoteroKey, item] of Object.entries(rawItems)) {
-                const citeKey = bbtCitekeys[zoteroKey];
-                if (citeKey) {
-                    item.citeKey = citeKey;
-                    item.year = extractYear(item.date || '');
-                    items.push(item);
                 }
             }
 

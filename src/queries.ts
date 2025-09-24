@@ -1,48 +1,34 @@
 // src/queries.ts
 // query for better bibtex citation keys
 export const queryBbt = `
-                SELECT
-                    itemKey as zoteroKey, 
-					citationKey as citeKey
-                FROM
-                    citationkey
-            `;
+SELECT
+    itemKey AS zoteroKey,
+    citationKey AS citeKey
+FROM
+    citationkey
+`;
 
 // query for zotero items
 export const queryItems = `
-                SELECT DISTINCT 
-                    items.key as zoteroKey,
-                    fields.fieldName,
-                    parentItemDataValues.value,
-                    itemTypes.typeName,
-                    items.libraryID
-                FROM
-                    items
-                    INNER JOIN itemData ON itemData.itemID = items.itemID
-                    INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
-                    INNER JOIN itemData as parentItemData ON parentItemData.itemID = items.itemID
-                    INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
-                    INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
-                    INNER JOIN itemTypes ON itemTypes.itemTypeID = items.itemTypeID
-				WHERE
-					fields.fieldName IN ('title', 'date');
-            `;
-
-// query for creators
-export const queryCreators = `
-                SELECT DISTINCT
-                    items.key as zoteroKey,
-                    creators.firstName,
-                    creators.lastName,
-                    itemCreators.orderIndex,
-                    creatorTypes.creatorType
-                FROM
-                    items
-                    INNER JOIN itemData ON itemData.itemID = items.itemID
-                    INNER JOIN itemCreators ON itemCreators.itemID = items.itemID
-                    INNER JOIN creators ON creators.creatorID = itemCreators.creatorID
-                    INNER JOIN creatorTypes ON itemCreators.creatorTypeID = creatorTypes.creatorTypeID
-            `;
+SELECT DISTINCT 
+    items.key AS zoteroKey,
+    items.libraryID,
+    creators.firstName,
+    creators.lastName,
+    max(CASE WHEN fields.fieldName = 'title' THEN itemDataValues.value END) AS title,
+    max(CASE WHEN fields.fieldName = 'date' THEN itemDataValues.value END) AS date
+FROM
+    items
+    INNER JOIN itemCreators ON items.itemID = itemCreators.itemID
+    INNER JOIN creators ON itemCreators.creatorID = creators.creatorID
+    INNER JOIN itemData ON items.itemID = itemData.itemID
+    INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
+    LEFT JOIN fields ON itemData.fieldID = fields.fieldID
+WHERE
+    itemCreators.orderIndex = 0
+GROUP BY
+    items.key
+`;
 
 export function queryZoteroKey(citeKey: string): string {
     return `
@@ -98,6 +84,5 @@ export function queryDoiByZoteroKey(zoteroKey: string): string {
 
 export default {
     queryBbt,
-    queryItems,
-    queryCreators
+    queryItems
 };
