@@ -63,7 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
                 });
 
                 const bibManager = new BibManager();
-                const bibFile = await bibManager.locateBibFile(fileType);
+                const bibFile = await bibManager.locateBibFile();
                 if (bibFile) {
                     bibManager.updateBibFile(bibFile, selected.item);
                 }
@@ -110,7 +110,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             const bibManager = new BibManager();
-            const bibFile = await bibManager.locateBibFile(fileType);
+            const bibFile = await bibManager.locateBibFile();
             
             if (bibFile) {
                 const openOptions = zoteroDb.getOpenOptions(citeKey);

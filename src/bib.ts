@@ -109,7 +109,7 @@ export class BibManager {
         return null;
     }
 
-    public async locateBibFile(fileType: string): Promise<string | null> {
+    public async locateBibFile(): Promise<string | null> {
         const editor = vscode.window.activeTextEditor;
         if (!editor) { return null; }
 
