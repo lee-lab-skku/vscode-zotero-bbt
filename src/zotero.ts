@@ -1,11 +1,17 @@
 import * as fs from 'fs/promises';
 import * as vscode from 'vscode';
 import initSqlJs, { Database } from 'sql.js';
-import { queryBbt, queryItems, queryCreators } from './queries';
+import {
+    queryBbt,
+    queryItems,
+    queryCreators,
+    queryZoteroKey,
+    queryPdfByZoteroKey,
+    queryDoiByZoteroKey
+} from './queries';
 import {
     handleError,
-    extractYear,
-    isValidBibEntry
+    extractYear
 } from './helpers';
 
 interface DatabaseOptions {
@@ -51,6 +57,16 @@ export class ZoteroDatabase {
                 handleError(new Error(String(error)), `Failed to connect to databases`);
             }
             return false;
+        }
+    }
+
+    public async connectIfNeeded() {
+        if (!this.db || !this.bbt) {
+            const connected = await this.connect();
+            if (!connected) {
+                vscode.window.showErrorMessage('Failed to connect to Zotero database');
+                return;
+            }
         }
     }
 
@@ -144,6 +160,40 @@ export class ZoteroDatabase {
         }
     }
 
+    public getOpenOptions(citeKey: string): Array<any> {
+
+        if (!this.db || !this.bbt) {
+            vscode.window.showErrorMessage('Database not connected');
+            return [];
+        }
+
+        const sqlZoteroKey = this.bbt.exec(queryZoteroKey(citeKey));
+        const zoteroKey = this.getFirstValue(sqlZoteroKey, 'zoteroKey');
+
+        if (!zoteroKey) {
+            vscode.window.showErrorMessage(`Could not find Zotero key for ${citeKey}`);
+            return [];
+        }
+
+        const options = [];
+        options.push({ type: 'zotero', key: zoteroKey });
+
+        const sqlPdf = this.db.exec(queryPdfByZoteroKey(zoteroKey));
+        const pdfKey = this.getFirstValue(sqlPdf, 'pdfKey');
+
+        if (pdfKey) {
+            options.push({ type: 'pdf', key: pdfKey });
+        }
+        const sqlDoi = this.db.exec(queryDoiByZoteroKey(zoteroKey));
+        const doi = this.getFirstValue(sqlDoi, 'value');
+
+        if (doi) {
+            options.push({ type: 'doi', key: doi });
+        }
+
+        return options;
+    }
+
     public close(): void {
         if (this.db) {
             this.db.close();
@@ -154,5 +204,18 @@ export class ZoteroDatabase {
             this.bbt.close();
             this.bbt = null;
         }
+    }
+
+    private getFirstValue(sqlResult: initSqlJs.QueryExecResult[], columnName: string): any | null {
+        if (sqlResult.length === 0) {
+            return null;
+        }
+        const { columns, values } = sqlResult[0];
+        const columnIndex = columns.indexOf(columnName);
+
+        if (columnIndex === -1 || values.length === 0) {
+            return null;
+        }
+        return values[0][columnIndex];
     }
 }

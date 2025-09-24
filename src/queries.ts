@@ -44,6 +44,58 @@ export const queryCreators = `
                     INNER JOIN creatorTypes ON itemCreators.creatorTypeID = creatorTypes.creatorTypeID
             `;
 
+export function queryZoteroKey(citeKey: string): string {
+    return `
+                SELECT
+                    itemKey as zoteroKey, 
+					citationKey as citeKey,
+					libraryID
+                FROM
+                    citationkey
+                WHERE
+                    citeKey = '${citeKey}';
+            `;
+};
+
+export function queryPdfByZoteroKey(zoteroKey: string): string {
+    return `
+                SELECT DISTINCT 
+                    items.key as zoteroKey,
+                    fields.fieldName,
+                    parentItemDataValues.value,
+                    attachment_items.key AS pdfKey
+                FROM
+                    items
+                    INNER JOIN itemData ON itemData.itemID = items.itemID
+                    INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
+                    INNER JOIN itemData as parentItemData ON parentItemData.itemID = items.itemID
+                    INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
+                    INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
+                    LEFT JOIN itemAttachments ON items.itemID = itemAttachments.parentItemID AND itemAttachments.contentType = 'application/pdf'
+                    LEFT JOIN items attachment_items ON itemAttachments.itemID = attachment_items.itemID
+				WHERE
+				  zoteroKey = '${zoteroKey}' AND fieldName = 'title';
+    `;
+};
+
+export function queryDoiByZoteroKey(zoteroKey: string): string {
+    return `
+                SELECT DISTINCT 
+                    items.key as zoteroKey,
+                    fields.fieldName,
+                    parentItemDataValues.value
+                FROM
+                    items
+                    INNER JOIN itemData ON itemData.itemID = items.itemID
+                    INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
+                    INNER JOIN itemData as parentItemData ON parentItemData.itemID = items.itemID
+                    INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
+                    INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
+				WHERE
+				    zoteroKey = '${zoteroKey}' AND fieldName = 'DOI';
+    `;
+};
+
 export default {
     queryBbt,
     queryItems,

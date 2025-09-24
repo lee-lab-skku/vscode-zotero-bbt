@@ -16,22 +16,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     const searchLibrary = vscode.commands.registerCommand('zotero.searchLibrary', async () => {
         // initialize configuration
-        let config = vscode.workspace.getConfiguration('zotero');
-        let zoteroDbPath = config.get<string>('zoteroDbPath', '~/Zotero/zotero.sqlite');
-        let betterBibtexDbPath = config.get<string>('betterBibtexDbPath', '~/Zotero/better-bibtex.sqlite');
-
-        let zoteroDb = new ZoteroDatabase({
-            zoteroDbPath: expandPath(zoteroDbPath),
-            betterBibtexDbPath: expandPath(betterBibtexDbPath),
-        });
+        const zoteroDb = initZoteroDb();
 
         try {
             // Connect to database
-            const connected = await zoteroDb.connect();
-            if (!connected) {
-                vscode.window.showErrorMessage('Failed to connect to Zotero database');
-                return;
-            }
+            await zoteroDb.connectIfNeeded();
 
             // Get items from Zotero
             const items = await zoteroDb.getItems();
@@ -101,15 +90,21 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
         } catch (error) {
-                    handleError(error, `Error occurred while searching Zotero library`);
-                } finally {
-                    zoteroDb.close();
-                }
-            });
+            handleError(error, `Error occurred while searching Zotero library`);
+        } finally {
+            zoteroDb.close();
+        }
+    });
     context.subscriptions.push(searchLibrary);
 
     const openItem = vscode.commands.registerCommand('zotero.openItem', async () => {
+        // initialize configuration
+        const zoteroDb = initZoteroDb();
+        
         try {
+            // Connect to database
+            await zoteroDb.connectIfNeeded();
+
             const editor = vscode.window.activeTextEditor;
             if (!editor) {
                 vscode.window.showErrorMessage('No active editor');
@@ -136,7 +131,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
             const bibFile = await bibManager.locateBibFile(fileType);
             if (bibFile) {
-                const openOptions = bibManager.getOpenOptions(bibFile, citeKey);
+                const openOptions = zoteroDb.getOpenOptions(citeKey);
                 if (openOptions.length === 0) {
                     vscode.window.showInformationMessage(`No PDF or DOI found for this item`);
                     return;
@@ -164,6 +159,8 @@ export function activate(context: vscode.ExtensionContext) {
             }
         } catch (error) {
             handleError(error, `Error occurred while opening Zotero item`);
+        } finally {
+            zoteroDb.close();
         }
     });
     context.subscriptions.push(openItem);
@@ -172,7 +169,7 @@ export function activate(context: vscode.ExtensionContext) {
 function openAttachment(option: any): void {
     switch (option.type) {
         case 'doi':
-            vscode.env.openExternal(vscode.Uri.parse(option.url));
+            vscode.env.openExternal(vscode.Uri.parse(`https://doi.org/${option.key}`));
             break;
         case 'zotero':
             vscode.env.openExternal(vscode.Uri.parse(`zotero://select/library/items/${option.key}`));
@@ -184,5 +181,17 @@ function openAttachment(option: any): void {
             break;
     }
 }
+
+function initZoteroDb(): ZoteroDatabase {
+        const config = vscode.workspace.getConfiguration('zotero');
+        const zoteroDbPath = config.get<string>('zoteroDbPath', '~/Zotero/zotero.sqlite');
+        const betterBibtexDbPath = config.get<string>('betterBibtexDbPath', '~/Zotero/better-bibtex.sqlite');
+
+        return new ZoteroDatabase({
+            zoteroDbPath: expandPath(zoteroDbPath),
+            betterBibtexDbPath: expandPath(betterBibtexDbPath),
+        });
+}
+
 
 export function deactivate() { }
