@@ -3,9 +3,6 @@ import { ZoteroDatabase } from './zotero';
 import { BibManager } from './bib';
 import {
     expandPath,
-    formatAuthors,
-    formatCitation,
-    formatTypes,
     handleError
 } from './helpers';
 
@@ -29,14 +26,10 @@ export function activate(context: vscode.ExtensionContext) {
 
             // Create QuickPick items
             const quickPickItems = items.map(item => {
-                const creators = item.creators;
-                const authors = formatAuthors(creators);
-
-                // determine icon based on item type
-                const icon = formatTypes(item.itemType);
+                const authors = (`${item.firstName} ${item.lastName}`) || 'NA';
 
                 return {
-                    label: `${icon} ${authors} (${item.year || 'n.d.'})`,
+                    label: `${authors} (${item.year || 'n.d.'})`,
                     description: `@${item.citeKey}`,
                     item: item,
                     detail: item.title
@@ -62,7 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                 // Format citation key based on file type
                 const citeKey = selected.item.citeKey;
-                let formattedCitation = formatCitation(citeKey, fileType);
+                let formattedCitation = `\\autocite{${citeKey}}`;
 
                 // Insert citation
                 editor.edit(editBuilder => {
