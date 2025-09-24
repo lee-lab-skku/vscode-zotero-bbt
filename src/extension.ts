@@ -3,9 +3,6 @@ import { ZoteroDatabase } from './zotero';
 import { BibManager } from './bib';
 import {
     expandPath,
-    formatAuthors,
-    formatCitation,
-    formatTypes,
     handleError
 } from './helpers';
 
@@ -42,14 +39,10 @@ export function activate(context: vscode.ExtensionContext) {
 
             // Create QuickPick items
             const quickPickItems = items.map(item => {
-                const creators = item.creators;
-                const authors = formatAuthors(creators);
-
-                // determine icon based on item type
-                const icon = formatTypes(item.itemType);
+                const authors = (`${item.firstName} ${item.lastName}`) || 'NA';
 
                 return {
-                    label: `${icon} ${authors} (${item.year || 'n.d.'})`,
+                    label: `${authors} (${item.year || 'n.d.'})`,
                     description: `@${item.citeKey}`,
                     item: item,
                     detail: item.title
@@ -98,7 +91,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                 // Format citation key based on file type
                 const citeKey = selected.item.citeKey;
-                let formattedCitation = formatCitation(citeKey, fileType);
+                let formattedCitation = `\\autocite{${citeKey}}`;
 
                 // Insert citation
                 editor.edit(editBuilder => {
@@ -107,7 +100,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                 // Try to fetch BibLaTeX from web, fallback to local SQLite
                 try {
-                    const biblatexUrl = zoteroDb.generateBibLatexUrl(selected.item);
+                    const biblatexUrl = `http://127.0.0.1:23119/better-bibtex/export?/library;id:${selectedItem.libraryID}/.biblatex`;
                     const biblatexContent = await zoteroDb.fetchBibLatexFile(biblatexUrl);
                     
                     // Extract the specific entry for this citation key
@@ -117,9 +110,7 @@ export function activate(context: vscode.ExtensionContext) {
                         // Update bibliography file with the extracted entry
                         const bibFile = await bibManager.locateBibFile(fileType);
                         if (bibFile) {
-                            // Ensure the entry ends with a newline for proper formatting
-                            const formattedEntry = bibEntry.endsWith('\n') ? bibEntry : bibEntry + '\n';
-                            bibManager.updateBibFile(bibFile, citeKey, formattedEntry, false); // Don't show message here
+                            bibManager.updateBibFile(bibFile, citeKey, bibEntry, false); // Don't show message here
                             vscode.window.showInformationMessage(`Added @${citeKey} from web source to ${bibFile}`);
                         }
                     } else {

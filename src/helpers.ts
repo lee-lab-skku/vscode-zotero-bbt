@@ -17,60 +17,9 @@ export function expandPath(filePath: string): string {
     return filePath;
 }
 
-export function formatAuthors(creators: any[]): string {
-    switch (creators.length) {
-        case 0:
-            return 'NA';
-        case 1:
-            return `${creators[0].lastName}`;
-        case 2:
-            return `${creators[0].lastName} & ${creators[1].lastName}`;
-        default:
-            return `${creators[0].lastName} et al.`;
-    }
-}
-
-export function extractYear(date: string): string | null{
-    const match = date.match(/(\d{4})/);
-    return match ? match[1] : null;
-}
-
-export function extractDate(date: string): string | null {
-    const match = date.match(/(\d{4}-\d{2}-\d{2})/);
-    return match ? match[1] : null;
-}
-
-export function formatCitation(citeKey: string, fileType: string): string {
-    switch (fileType) {
-        case 'latex':
-        case 'tex':
-        case 'plaintex':
-            return `\\cite{${citeKey}}`;
-        case 'markdown':
-        case 'quarto':
-            return `@${citeKey}`;
-        default:
-            return `@${citeKey}`;
-    }
-}
-
-export function formatTypes(itemType: string): string {
-    switch (itemType) {
-        case 'book':
-            return '📘';
-        case 'bookSection':
-            return '📖';
-        case 'journalArticle':
-            return '📄';
-        case 'thesis':
-            return '🎓';
-        case 'preprint':
-            return '📝';
-        case 'webpage':
-            return '🌏';
-        default:
-            return '📎';
-    }
+export function extractYear(date: string | null): string {
+    const match = date?.match(/(\d{4})/);
+    return match ? match[1] : '';
 }
 
 export function handleError(error: any, message: string): void {

@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as vscode from 'vscode';
 import initSqlJs, { Database } from 'sql.js';
 import { queryBbt, queryItems } from './queries';
-import { handleError, extractYear } from './helpers';
+import { extractYear, handleError } from './helpers';
 
 interface DatabaseOptions {
     zoteroDbPath: string;
@@ -67,52 +67,49 @@ export class ZoteroDatabase {
             ];
 
             // Process results
-            const bbtCitekeys: Record<string, string> = {};
+            const items: any[] = [];
+            
+            // Get BBT data indexed by zoteroKey
+            const bbtData: Record<string, string> = {};
             if (sqlBbt.length > 0) {
                 const { columns, values } = sqlBbt[0];
                 const zoteroKeyIndex = columns.indexOf('zoteroKey');
                 const citeKeyIndex = columns.indexOf('citeKey');
+                
                 for (const row of values) {
-                    bbtCitekeys[row[zoteroKeyIndex] as string] = row[citeKeyIndex] as string;
+                    const zoteroKey = row[zoteroKeyIndex] as string;
+                    const citeKey = row[citeKeyIndex] as string;
+                    bbtData[zoteroKey] = citeKey;
                 }
             }
-
-            const rawItems: Record<string, any> = {};
+            
+            // Process Zotero items and combine with BBT data
             if (sqlItems.length > 0) {
                 const { columns, values } = sqlItems[0];
                 const zoteroKeyIndex = columns.indexOf('zoteroKey');
-                const groupIdIndex = columns.indexOf('groupID');
-                const groupNameIndex = columns.indexOf('groupName');
                 const libraryIdIndex = columns.indexOf('libraryID');
-
+                const firstNameIndex = columns.indexOf('firstName');
+                const lastNameIndex = columns.indexOf('lastName');
+                const titleIndex = columns.indexOf('title');
+                const dateIndex = columns.indexOf('date');
+                
                 for (const row of values) {
                     const zoteroKey = row[zoteroKeyIndex] as string;
-                    if (!rawItems[zoteroKey]) {
-                        rawItems[zoteroKey] = {
-                            creators: [],
-                            zoteroKey: zoteroKey
+                    const citeKey = bbtData[zoteroKey];
+                    
+                    if (citeKey) {
+                        const item = {
+                            zoteroKey: zoteroKey,
+                            citeKey: citeKey,
+                            libraryID: row[libraryIdIndex],
+                            firstName: row[firstNameIndex],
+                            lastName: row[lastNameIndex],
+                            title: row[titleIndex],
+                            year: extractYear(row[dateIndex] as string || '')
                         };
+                        
+                        items.push(item);
                     }
-
-                    // Add group information
-                    if (row[groupIdIndex]) {
-                        rawItems[zoteroKey].groupID = row[groupIdIndex];
-                        rawItems[zoteroKey].groupName = row[groupNameIndex];
-                    }
-                    if (row[libraryIdIndex]) {
-                        rawItems[zoteroKey].libraryID = row[libraryIdIndex];
-                    }
-                }
-            }
-
-            // Build final items array with citeKeys
-            const items: any[] = [];
-            for (const [zoteroKey, item] of Object.entries(rawItems)) {
-                const citeKey = bbtCitekeys[zoteroKey];
-                if (citeKey) {
-                    item.citeKey = citeKey;
-                    item.year = extractYear(item.date || '');
-                    items.push(item);
                 }
             }
 
@@ -132,24 +129,6 @@ export class ZoteroDatabase {
         if (this.bbt) {
             this.bbt.close();
             this.bbt = null;
-        }
-    }
-
-    /**
-     * Generate BibLaTeX URL based on item's library and group information
-     */
-    public generateBibLatexUrl(item: any): string {
-        const baseUrl = 'http://127.0.0.1:23119/better-bibtex/export?';
-        
-        if (item.libraryID === 1) {
-            // Personal library case
-            return `${baseUrl}/library;id:1/My%20Library.biblatex`;
-        } else if (item.groupID && item.groupName) {
-            // Group library case
-            const encodedGroupName = encodeURIComponent(item.groupName);
-            return `${baseUrl}/group;id:${item.groupID}/${encodedGroupName}.biblatex`;
-        } else {
-            throw new Error(`Cannot generate URL: Item from library ${item.libraryID} has no group information`);
         }
     }
 
@@ -238,7 +217,7 @@ export class ZoteroDatabase {
             }
 
             if (braceCount === 0 && entryEnd > entryStart) {
-                return biblatexContent.substring(entryStart, entryEnd).trim();
+                return biblatexContent.substring(entryStart, entryEnd).trim() + '\n';
             }
 
             return null;
