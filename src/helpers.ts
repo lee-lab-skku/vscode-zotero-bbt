@@ -77,3 +77,19 @@ export function handleError(error: any, message: string): void {
     const errorMessage = error instanceof Error ? error.message : String(error);
     vscode.window.showErrorMessage(`${message}: ${errorMessage}`);
 }
+
+// Validate if content is a proper Bib(La)Tex Entry
+export function isValidBibEntry(content: string): boolean {
+    // Basic validation checks
+    if (!content || content.trim().length === 0) {
+        return false;
+    }
+
+    // Check for BibLaTeX entry patterns
+    const bibEntryPattern = /@\w+\s*\{[^,]+,/;
+    if (!bibEntryPattern.test(content)) {
+        return false;
+    }
+
+    return true;
+}

@@ -4,15 +4,61 @@ import * as path from 'path';
 import {
     expandPath,
     handleError,
-    extractDate
+    extractDate,
+    isValidBibEntry
 } from './helpers';
 
 export class BibManager {
-    // Converts a Zotero item to a BibTeX entry
+    /**
+     * Export better bibtex citation using JSON-RPC
+     * @param item The Zotero item to export.
+     * @param translator The Better BibTeX translator to use.
+     * @returns The exported Bib(La)TeX entry.
+     */
+    public async bbtExport(
+        item: any,
+        translator: string,
+    ): Promise<string> {
+        const url = 'http://localhost:23119/better-bibtex/json-rpc';
+
+        const payload = {
+            jsonrpc: '2.0',
+            method: 'item.export',
+            params: {
+                citekeys: [item.citeKey],
+                translator: translator,
+            },
+            id: item.libraryID,
+        };
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+            const json = await response.json();
+            return json.result;
+
+        } catch (error) {
+            vscode.window.showErrorMessage('Cannot connect to Better BibTeX server Make sure Zotero is running with Better BibTeX plugin');
+            return '';
+        }
+    }
+
+    /**
+     * Converts a Zotero item to a BibTeX entry
+     * @param item The Zotero item to export.
+     * @returns The exported Bib(La)TeX entry.
+     */
+    
     public entryToBibEntry(item: any): string {
         let bibEntry = '@';
         const citeKey = item.citeKey || '';
-        
+
         if (item.itemType === 'magazineArticle') {
             item.subtype = 'magazine';
         }
@@ -22,7 +68,7 @@ export class BibManager {
         item.itemType = toBibtexType(item.itemType || 'misc');
 
         bibEntry += `${item.itemType}{${citeKey},\n`;
-        
+
         for (const [key, value] of Object.entries(item)) {
             if (key === 'creators') {
                 bibEntry += '  author = {';
@@ -62,7 +108,7 @@ export class BibManager {
                 const urlDate = extractDate(value);
                 if (urlDate) {
                     bibEntry += `  urldate = {${urlDate}},\n`;
-                } 
+                }
             } else if (
                 key !== 'citeKey' &&
                 key !== 'itemType' &&
@@ -175,6 +221,12 @@ export class BibManager {
     }
 
     public updateBibFile(bibFile: string, citeKey: string, bibEntry: string): void {
+        // check if bibEntry is valid
+        if (!isValidBibEntry(bibEntry)) {
+            vscode.window.showErrorMessage('Invalid BibLaTeX entry. Not updating bibliography file.');
+            return;
+        }
+
         try {
             const bibPath = expandPath(bibFile);
 
@@ -202,9 +254,13 @@ export class BibManager {
                 }
             }
 
+            // Add empty line before new entry if file is not empty
+            const needsEmptyLine = bibContent.trim().length > 0 && !bibContent.trim().endsWith('\n');
+            const entryToAdd = needsEmptyLine ? '\n' + bibEntry : bibEntry;
+
             // Append entry to file
-            fs.appendFileSync(bibPath, bibEntry);
-            vscode.window.showInformationMessage(`Added @${citeKey} to ${bibFile}`);
+            fs.appendFileSync(bibPath, entryToAdd);
+            vscode.window.showInformationMessage(`Added @${citeKey} from local database to ${bibFile}`);
         } catch (error) {
             handleError(error, `Failed to update bibliography file`);
         }
