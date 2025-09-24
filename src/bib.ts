@@ -49,6 +49,19 @@ export class BibManager {
                 body: JSON.stringify(payload),
             });
             const json = await response.json();
+            
+            // Handle JSON-RPC errors
+            if (json.error) {
+                vscode.window.showErrorMessage(`Better BibTeX error: ${json.error.message || 'Unknown error'}`);
+                return '';
+            }
+            
+            // Ensure result is a string
+            if (typeof json.result !== 'string') {
+                vscode.window.showErrorMessage('Better BibTeX returned invalid result format');
+                return '';
+            }
+            
             return json.result;
 
         } catch (error) {
@@ -260,8 +273,8 @@ export class BibManager {
             // Get BibTeX entry
 
             const bibEntry = await this.bbtExport(item);
-            // if bibEntry is empty, return (probably could not connect to BBT server)
-            if (bibEntry.trim() === '') {
+            // if bibEntry is empty or undefined, return (probably could not connect to BBT server)
+            if (!bibEntry || bibEntry.trim() === '') {
                return;
             }
 
