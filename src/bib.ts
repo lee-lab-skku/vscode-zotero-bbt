@@ -15,9 +15,9 @@ export class BibManager {
      * @param translator The Better BibTeX translator to use.
      * @returns The exported Bib(La)TeX entry.
      */
-    
+
     private translator: string;
-    
+
     constructor() {
         const config = vscode.workspace.getConfiguration('zotero');
         const translator = config.get<string>('betterBibtexTranslator', 'Better BibLaTeX');
@@ -52,7 +52,7 @@ export class BibManager {
             return json.result;
 
         } catch (error) {
-            vscode.window.showErrorMessage('Cannot connect to Better BibTeX server Make sure Zotero is running with Better BibTeX plugin');
+            vscode.window.showErrorMessage('Cannot connect to Better BibTeX. Make sure Zotero is running!');
             return '';
         }
     }
@@ -62,7 +62,7 @@ export class BibManager {
      * @param item The Zotero item to export.
      * @returns The exported Bib(La)TeX entry.
      */
-    
+
     public entryToBibEntry(item: any): string {
         let bibEntry = '@';
         const citeKey = item.citeKey || '';
@@ -228,15 +228,10 @@ export class BibManager {
         return bibPath;
     }
 
-    public updateBibFile(bibFile: string, citeKey: string, bibEntry: string): void {
-        // check if bibEntry is valid
-        if (!isValidBibEntry(bibEntry)) {
-            vscode.window.showErrorMessage('Invalid BibLaTeX entry. Not updating bibliography file.');
-            return;
-        }
-
+    public async updateBibFile(bibFile: string, item: any): Promise<void> {
         try {
             const bibPath = expandPath(bibFile);
+            const citeKey = item.citeKey;
 
             // Check if file exists
             if (!fs.existsSync(bibPath)) {
@@ -262,13 +257,27 @@ export class BibManager {
                 }
             }
 
+            // Get BibTeX entry
+
+            const bibEntry = await this.bbtExport(item);
+            // if bibEntry is empty, return (probably could not connect to BBT server)
+            if (bibEntry.trim() === '') {
+               return;
+            }
+
+            // check if bibEntry is valid
+            if (!isValidBibEntry(bibEntry)) {
+                vscode.window.showErrorMessage('Invalid BibLaTeX entry. Not updating bibliography file.');
+                return;
+            }
+
             // Add empty line before new entry if file is not empty
             const needsEmptyLine = bibContent.trim().length > 0 && !bibContent.trim().endsWith('\n');
             const entryToAdd = needsEmptyLine ? '\n' + bibEntry : bibEntry;
 
             // Append entry to file
             fs.appendFileSync(bibPath, entryToAdd);
-            vscode.window.showInformationMessage(`Added @${citeKey} from local database to ${bibFile}`);
+            vscode.window.showInformationMessage(`Added @${citeKey} to ${bibFile}`);
         } catch (error) {
             handleError(error, `Failed to update bibliography file`);
         }

@@ -72,18 +72,7 @@ export function activate(context: vscode.ExtensionContext) {
                 const bibManager = new BibManager();
                 const bibFile = await bibManager.locateBibFile(fileType);
                 if (bibFile) {
-                    // Try to fetch BibLaTeX from web, fallback to local SQLite
-                    try {
-                        const bibEntry = await bibManager.bbtExport(selected.item);
-                        bibManager.updateBibFile(bibFile, citeKey, bibEntry);
-
-                    } catch (error) {
-                        // Fallback to original workflow
-                        vscode.window.showWarningMessage(`Web fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}. Using local database.`);
-
-                        const bibEntry = bibManager.entryToBibEntry(selected.item);
-                        bibManager.updateBibFile(bibFile, citeKey, bibEntry);
-                    }
+                    bibManager.updateBibFile(bibFile, selected.item);
                 }
             }
         } catch (error) {
