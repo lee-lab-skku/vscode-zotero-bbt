@@ -7,7 +7,6 @@ Currently available Zotero extensions for VSCode are not useful for inserting ci
 
 - Rely on Zotero's citation picker, which can be slow and aesthetically inconsistent with VSCode.
 - Require you to first export your Zotero library to a Bibtex file, which is not convenient.
-- Require Zotero to be running.
 - Do not support `quarto` files.
 - Has not been updated for a long time.
 
@@ -17,6 +16,7 @@ Also, the official [Quarto extension for VSCode](https://marketplace.visualstudi
 
 - Zotero
 - Zotero Better Bibtex
+- Zotero needs to be running to add Bib(La)Tex entries.
 
 ## Features
 
@@ -34,7 +34,7 @@ If you sellect an item, it will automatically add to `*.bib` file of your projec
 
 1. `*.bib` file in `quarto` or `latex` file header (for quarto, this includes `_quarto.yml`)
 1. `bibliography.bib` or `references.bib` file in the workspace root directory
-1. Any `*.bib` file i the workspace root directory.
+1. Any `*.bib` file in the workspace root directory.
 1. If none of above is available, ask user to provide path, or create a new one (you still need to add the file to `quarto` or `latex` header).
 
 ### Open PDF/Zotero entry/DOI of citation item under cursor (`zotero.openItem`)
@@ -52,6 +52,7 @@ For any citations that were inserted using this extension, you can:
 
 * `zotero.zoteroDbPath`: Path to Zotero database file (default: `~/Zotero/zotero.sqlite`).
 * `zotero.betterBibtexDbPath`: Path to Better BibTex database file (default: `~/Zotero/better-bibtex.sqlite`).
+* `zotero.betterBibtexTranslator`: Better BibTeX translator to use for exporting entries (default: `Better BibLaTeX`).
 
 ## Release Notes
 
@@ -59,9 +60,10 @@ See [CHANGELOG.md](CHANGELOG.md)
 
 ## Todo
 
-- [ ] Performance optimization
-- [ ] Rewrite `.bib` reader/writer so that it does not require Better Bibtex database.
-- [ ] Support both bibtex and biblatex formats.
+- [x] Performance optimization
+- [x] Rewrite `.bib` reader/writer so that it does not require Better Bibtex database.
+- [x] Support both bibtex and biblatex formats.
+- [ ] Code cleanup
 
 ## Notes
 
