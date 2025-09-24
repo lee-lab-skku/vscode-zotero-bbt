@@ -17,12 +17,15 @@ export class BibManager {
      */
 
     private translator: string;
-    private editor: vscode.TextEditor | undefined;
+    private editor: vscode.TextEditor;
+    private fileType: string;
 
-    constructor() {
+    constructor(editor: vscode.TextEditor, fileType: string) {
         const config = vscode.workspace.getConfiguration('zotero');
         const translator = config.get<string>('betterBibtexTranslator', 'Better BibLaTeX');
         this.translator = translator;
+        this.editor = editor;
+        this.fileType = fileType;
     }
 
     public async bbtExport(
@@ -120,16 +123,13 @@ export class BibManager {
         return null;
     }
 
-    public async locateBibFile(fileType: string): Promise<string | null> {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) { return null; }
-
-        const document = editor.document;
+    public async locateBibFile(): Promise<string | null> {
+        const document = this.editor.document;
         const text = document.getText();
 
         let bibPath: string | null = null;
 
-        switch (fileType) {
+        switch (this.fileType) {
             case 'markdown':
             case 'quarto':
                 bibPath = await this.locateBibMd(text);
@@ -146,8 +146,9 @@ export class BibManager {
         // if no bibliography found, ask user
         if (!bibPath) {
             bibPath = await vscode.window.showInputBox({
-                prompt: 'Bibliography file not found. Please enter path to bibliography file',
-                placeHolder: 'Path to .bib file'
+                prompt: 'Bibliography file not found. Please enter path to bibliography file (default: references.bib)',
+                placeHolder: 'Path to .bib file',
+                value: 'references.bib'
             }) || null;
         }
 
@@ -155,16 +156,7 @@ export class BibManager {
     }
 
     public async updateBibFile(item: any): Promise<void> {
-        // Check if editor is open
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            vscode.window.showErrorMessage('No active editor');
-            return;
-        }
-        // Get current file type
-        const fileType = editor.document.languageId;
-
-        const bibFile = await this.locateBibFile(fileType);
+        const bibFile = await this.locateBibFile();
         if (!bibFile) {
             vscode.window.showErrorMessage('Error locating *.bib file');
             return;
@@ -194,7 +186,7 @@ export class BibManager {
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].match(new RegExp(`^@.*{${citeKey},`))) {
                     vscode.window.showInformationMessage(`Entry for @${citeKey} already exists in bibliography`);
-                    this.insertCite(item, editor, fileType);
+                    this.insertCite(item);
                     return;
                 }
             }
@@ -213,7 +205,7 @@ export class BibManager {
                 return;
             }
 
-            this.insertCite(item, editor, fileType);
+            this.insertCite(item);
 
             // Add empty line before new entry if file is not empty
             const needsEmptyLine = bibContent.trim().length > 0 && !bibContent.trim().endsWith('\n');
@@ -267,14 +259,14 @@ export class BibManager {
         return options;
     }
 
-    private insertCite(item: any, editor: vscode.TextEditor, fileType: string) {
+    private insertCite(item: any) {
         // Format citation key based on file type
         const citeKey = item.citeKey;
-        let formattedCitation = formatCitation(citeKey, fileType);
+        let formattedCitation = formatCitation(citeKey, this.fileType);
 
         // Insert citation
-        editor.edit(editBuilder => {
-            editBuilder.insert(editor.selection.active, formattedCitation);
+        this.editor.edit(editBuilder => {
+            editBuilder.insert(this.editor.selection.active, formattedCitation);
         });
     }
 }

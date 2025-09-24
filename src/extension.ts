@@ -13,11 +13,13 @@ export function activate(context: vscode.ExtensionContext) {
     const searchLibrary = vscode.commands.registerCommand('zotero.searchLibrary', async () => {
         // initialize configuration
         const zoteroDb = initZoteroDb();
+
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             vscode.window.showErrorMessage('No active editor');
             return;
         }
+        const fileType = editor.document.languageId;
 
         try {
             // Connect to database
@@ -55,7 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             if (selected) {
-                const bibManager = new BibManager();
+                const bibManager = new BibManager(editor, fileType);
                 bibManager.updateBibFile(selected.item);
             }
         } catch (error) {
@@ -69,22 +71,22 @@ export function activate(context: vscode.ExtensionContext) {
     const openItem = vscode.commands.registerCommand('zotero.openItem', async () => {
         // initialize configuration
         const zoteroDb = initZoteroDb();
-        
+
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor');
+            return;
+        }
+        const fileType = editor.document.languageId;
+
         try {
             // Connect to database
             await zoteroDb.connectIfNeeded();
-
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) {
-                vscode.window.showErrorMessage('No active editor');
-                return;
-            }
 
             // Get the current position and word under cursor
             const position = editor.selection.active;
             const document = editor.document;
             const wordRange = document.getWordRangeAtPosition(position);
-            const fileType = editor.document.languageId;
 
             if (!wordRange) {
                 vscode.window.showInformationMessage('No word found at cursor position');
@@ -99,34 +101,29 @@ export function activate(context: vscode.ExtensionContext) {
                 citeKey = citeKey.substring(1);
             }
 
-            const bibManager = new BibManager();
-            const bibFile = await bibManager.locateBibFile(fileType);
-            
-            if (bibFile) {
-                const openOptions = zoteroDb.getOpenOptions(citeKey);
-                if (openOptions.length === 0) {
-                    vscode.window.showInformationMessage(`No PDF or DOI found for this item`);
-                    return;
-                }
-                if (openOptions.length === 1) {
-                    openAttachment(openOptions[0]);
-                } else {
-                    // Show QuickPick for multiple options
-                    const quickPickItems = openOptions.map((option, index) => ({
-                        label: option.type === 'pdf' ? 'Open PDF' :
-                            option.type === 'doi' ? 'Open DOI link' :
-                                option.type === 'zotero' ? 'Open in Zotero' : '',
-                        option: option,
-                        index: index
-                    }));
+            const openOptions = zoteroDb.getOpenOptions(citeKey);
+            if (openOptions.length === 0) {
+                vscode.window.showInformationMessage(`No PDF or DOI found for this item`);
+                return;
+            }
+            if (openOptions.length === 1) {
+                openAttachment(openOptions[0]);
+            } else {
+                // Show QuickPick for multiple options
+                const quickPickItems = openOptions.map((option, index) => ({
+                    label: option.type === 'pdf' ? 'Open PDF' :
+                        option.type === 'doi' ? 'Open DOI link' :
+                            option.type === 'zotero' ? 'Open in Zotero' : '',
+                    option: option,
+                    index: index
+                }));
 
-                    const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
-                        placeHolder: 'Choose action'
-                    });
+                const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
+                    placeHolder: 'Choose action'
+                });
 
-                    if (selectedItem) {
-                        openAttachment(selectedItem.option);
-                    }
+                if (selectedItem) {
+                    openAttachment(selectedItem.option);
                 }
             }
         } catch (error) {
@@ -155,14 +152,14 @@ function openAttachment(option: any): void {
 }
 
 function initZoteroDb(): ZoteroDatabase {
-        const config = vscode.workspace.getConfiguration('zotero');
-        const zoteroDbPath = config.get<string>('zoteroDbPath', '~/Zotero/zotero.sqlite');
-        const betterBibtexDbPath = config.get<string>('betterBibtexDbPath', '~/Zotero/better-bibtex.sqlite');
+    const config = vscode.workspace.getConfiguration('zotero');
+    const zoteroDbPath = config.get<string>('zoteroDbPath', '~/Zotero/zotero.sqlite');
+    const betterBibtexDbPath = config.get<string>('betterBibtexDbPath', '~/Zotero/better-bibtex.sqlite');
 
-        return new ZoteroDatabase({
-            zoteroDbPath: expandPath(zoteroDbPath),
-            betterBibtexDbPath: expandPath(betterBibtexDbPath),
-        });
+    return new ZoteroDatabase({
+        zoteroDbPath: expandPath(zoteroDbPath),
+        betterBibtexDbPath: expandPath(betterBibtexDbPath),
+    });
 }
 
 
