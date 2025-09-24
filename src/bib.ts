@@ -4,8 +4,8 @@ import * as path from 'path';
 import {
     expandPath,
     handleError,
-    extractDate,
-    isValidBibEntry
+    isValidBibEntry,
+    formatCitation
 } from './helpers';
 
 export class BibManager {
@@ -17,11 +17,15 @@ export class BibManager {
      */
 
     private translator: string;
+    private editor: vscode.TextEditor;
+    private fileType: string;
 
-    constructor() {
+    constructor(editor: vscode.TextEditor, fileType: string) {
         const config = vscode.workspace.getConfiguration('zotero');
         const translator = config.get<string>('betterBibtexTranslator', 'Better BibLaTeX');
         this.translator = translator;
+        this.editor = editor;
+        this.fileType = fileType;
     }
 
     public async bbtExport(
@@ -68,81 +72,6 @@ export class BibManager {
             vscode.window.showErrorMessage('Cannot connect to Better BibTeX. Make sure Zotero is running!');
             return '';
         }
-    }
-
-    /**
-     * Converts a Zotero item to a BibTeX entry
-     * @param item The Zotero item to export.
-     * @returns The exported Bib(La)TeX entry.
-     */
-
-    public entryToBibEntry(item: any): string {
-        let bibEntry = '@';
-        const citeKey = item.citeKey || '';
-
-        if (item.itemType === 'magazineArticle') {
-            item.subtype = 'magazine';
-        }
-        if (item.itemType === 'newspaperArticle') {
-            item.subtype = 'newspaper';
-        }
-        item.itemType = toBibtexType(item.itemType || 'misc');
-
-        bibEntry += `${item.itemType}{${citeKey},\n`;
-
-        for (const [key, value] of Object.entries(item)) {
-            if (key === 'creators') {
-                bibEntry += '  author = {';
-                let author = '';
-
-                for (const creator of value as any[]) {
-                    author += `${creator.lastName || ''}, ${creator.firstName || ''} and `;
-                }
-
-                // Remove trailing ' and '
-                author = author.slice(0, -5);
-                bibEntry += `${author}},\n`;
-            } else if (
-                item.itemType === 'article' &&
-                key === 'publicationTitle'
-            ) {
-                bibEntry += `  journal = {${value}},\n`;
-            } else if (
-                item.itemType === 'inproceedings' &&
-                key === 'proceedingsTitle'
-            ) {
-                bibEntry += `  booktitle = {${value}},\n`;
-            } else if (
-                key === 'date' &&
-                typeof value === 'string'
-            ) {
-                // only add date if it is in YYYY-MM-DD format
-                const date = extractDate(value);
-                if (date) {
-                    bibEntry += `  date = {${date}},\n`;
-                }
-            } else if (
-                key === 'accessDate' &&
-                typeof value === 'string'
-            ) {
-                // check if value has YYYY-MM-DD format if so, add match as urldate
-                const urlDate = extractDate(value);
-                if (urlDate) {
-                    bibEntry += `  urldate = {${urlDate}},\n`;
-                }
-            } else if (
-                key !== 'citeKey' &&
-                key !== 'itemType' &&
-                key !== 'attachment' &&
-                key !== 'abstractNote' &&
-                typeof value === 'string'
-            ) {
-                bibEntry += `  ${key} = {${value}},\n`;
-            }
-        }
-
-        bibEntry += '}\n';
-        return bibEntry;
     }
 
     private async locateBibMd(text: string): Promise<string | null> {
@@ -207,16 +136,13 @@ export class BibManager {
         return null;
     }
 
-    public async locateBibFile(fileType: string): Promise<string | null> {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) { return null; }
-
-        const document = editor.document;
+    public async locateBibFile(): Promise<string | null> {
+        const document = this.editor.document;
         const text = document.getText();
 
         let bibPath: string | null = null;
 
-        switch (fileType) {
+        switch (this.fileType) {
             case 'markdown':
             case 'quarto':
                 bibPath = await this.locateBibMd(text);
@@ -233,15 +159,22 @@ export class BibManager {
         // if no bibliography found, ask user
         if (!bibPath) {
             bibPath = await vscode.window.showInputBox({
-                prompt: 'Bibliography file not found. Please enter path to bibliography file',
-                placeHolder: 'Path to .bib file'
+                prompt: 'Bibliography file not found. Please enter path to bibliography file (default: references.bib)',
+                placeHolder: 'Path to .bib file',
+                value: 'references.bib'
             }) || null;
         }
 
         return bibPath;
     }
 
-    public async updateBibFile(bibFile: string, item: any): Promise<void> {
+    public async updateBibFile(item: any): Promise<void> {
+        const bibFile = await this.locateBibFile();
+        if (!bibFile) {
+            vscode.window.showErrorMessage('Error locating *.bib file');
+            return;
+        }
+
         try {
             const bibPath = expandPath(bibFile);
             const citeKey = item.citeKey;
@@ -266,6 +199,7 @@ export class BibManager {
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].match(new RegExp(`^@.*{${citeKey},`))) {
                     vscode.window.showInformationMessage(`Entry for @${citeKey} already exists in bibliography`);
+                    this.insertCite(item);
                     return;
                 }
             }
@@ -275,7 +209,7 @@ export class BibManager {
             const bibEntry = await this.bbtExport(item);
             // if bibEntry is empty or undefined, return (probably could not connect to BBT server)
             if (!bibEntry || bibEntry.trim() === '') {
-               return;
+                return;
             }
 
             // check if bibEntry is valid
@@ -283,6 +217,8 @@ export class BibManager {
                 vscode.window.showErrorMessage('Invalid BibLaTeX entry. Not updating bibliography file.');
                 return;
             }
+
+            this.insertCite(item);
 
             // Add empty line before new entry if file is not empty
             const needsEmptyLine = bibContent.trim().length > 0 && !bibContent.trim().endsWith('\n');
@@ -334,71 +270,16 @@ export class BibManager {
         }
 
         return options;
-
     }
-}
 
-function toBibtexType(itemType: string): string {
-    switch (itemType) {
-        case 'journalArticle':
-        case 'magazineArticle':
-        case 'newspaperArticle':
-        case 'preprint':
-            return 'article';
-        case 'artwork':
-            return 'artwork';
-        case 'audioRecording':
-        case 'radioBroadcast':
-        case 'podcast':
-            return 'audio';
-        case 'book':
-            return 'book';
-        case 'dataset':
-            return 'dataset';
-        case 'bookSection':
-            return 'incollection';
-        case 'conferencePaper':
-            return 'inproceedings';
-        case 'dictionaryEntry':
-        case 'encyclopediaArticle':
-            return 'inreference';
-        case 'case':
-        case 'gazette':
-        case 'hearing':
-            return 'jurisdiction';
-        case 'bill':
-        case 'statute':
-            return 'legislation';
-        case 'email':
-        case 'letter':
-            return 'letter';
-        case 'document':
-        case 'instantMessage':
-        case 'interview':
-        case 'map':
-            return 'misc';
-        case 'blogPost':
-        case 'forumPost':
-        case 'webpage':
-            return 'online';
-        case 'patent':
-            return 'patent';
-        case 'report':
-            return 'report';
-        case 'computerProgram':
-            return 'software';
-        case 'standard':
-            return 'standard';
-        case 'thesis':
-            return 'thesis';
-        case 'manuscript':
-        case 'presentation':
-            return 'unpublished';
-        case 'film':
-        case 'tvBroadcast':
-        case 'videoRecording':
-            return 'video';
-        default:
-            return itemType;
+    private insertCite(item: any) {
+        // Format citation key based on file type
+        const citeKey = item.citeKey;
+        let formattedCitation = formatCitation(citeKey, this.fileType);
+
+        // Insert citation
+        this.editor.edit(editBuilder => {
+            editBuilder.insert(this.editor.selection.active, formattedCitation);
+        });
     }
 }

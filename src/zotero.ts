@@ -206,6 +206,12 @@ export class ZoteroDatabase {
         }
     }
 
+    /**
+     * Get the first value from a SQL result set.
+     * @param sqlResult The SQL result set.
+     * @param columnName The name of the column to retrieve the value from.
+     * @returns The first value in the specified column, or null if not found.
+     */
     private getFirstValue(sqlResult: initSqlJs.QueryExecResult[], columnName: string): any | null {
         if (sqlResult.length === 0) {
             return null;

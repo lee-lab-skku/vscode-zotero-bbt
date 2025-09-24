@@ -64,6 +64,7 @@ See [CHANGELOG.md](CHANGELOG.md)
 - [x] Rewrite `.bib` reader/writer so that it does not require Better Bibtex database.
 - [x] Support both bibtex and biblatex formats.
 - [ ] Code cleanup
+- [ ] Better handling of multiple Zotero libraries
 
 ## Notes
 
