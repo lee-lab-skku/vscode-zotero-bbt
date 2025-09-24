@@ -4,7 +4,6 @@ import { BibManager } from './bib';
 import {
     expandPath,
     formatAuthors,
-    formatCitation,
     formatTypes,
     handleError
 } from './helpers';
@@ -14,6 +13,11 @@ export function activate(context: vscode.ExtensionContext) {
     const searchLibrary = vscode.commands.registerCommand('zotero.searchLibrary', async () => {
         // initialize configuration
         const zoteroDb = initZoteroDb();
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor');
+            return;
+        }
 
         try {
             // Connect to database
@@ -51,29 +55,8 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             if (selected) {
-                // Get current file type
-                const editor = vscode.window.activeTextEditor;
-                if (!editor) {
-                    vscode.window.showErrorMessage('No active editor');
-                    return;
-                }
-
-                const fileType = editor.document.languageId;
-
-                // Format citation key based on file type
-                const citeKey = selected.item.citeKey;
-                let formattedCitation = formatCitation(citeKey, fileType);
-
-                // Insert citation
-                editor.edit(editBuilder => {
-                    editBuilder.insert(editor.selection.active, formattedCitation);
-                });
-
                 const bibManager = new BibManager();
-                const bibFile = await bibManager.locateBibFile(fileType);
-                if (bibFile) {
-                    bibManager.updateBibFile(bibFile, selected.item);
-                }
+                bibManager.updateBibFile(selected.item);
             }
         } catch (error) {
             handleError(error, `Error occurred while searching Zotero library`);

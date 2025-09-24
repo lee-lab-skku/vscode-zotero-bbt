@@ -5,7 +5,8 @@ import {
     expandPath,
     handleError,
     extractDate,
-    isValidBibEntry
+    isValidBibEntry,
+    formatCitation
 } from './helpers';
 
 export class BibManager {
@@ -17,6 +18,7 @@ export class BibManager {
      */
 
     private translator: string;
+    private editor: vscode.TextEditor | undefined;
 
     constructor() {
         const config = vscode.workspace.getConfiguration('zotero');
@@ -228,7 +230,22 @@ export class BibManager {
         return bibPath;
     }
 
-    public async updateBibFile(bibFile: string, item: any): Promise<void> {
+    public async updateBibFile(item: any): Promise<void> {
+        // Check if editor is open
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor');
+            return;
+        }
+        // Get current file type
+        const fileType = editor.document.languageId;
+
+        const bibFile = await this.locateBibFile(fileType);
+        if (!bibFile) {
+            vscode.window.showErrorMessage('Error locating *.bib file');
+            return;
+        }
+
         try {
             const bibPath = expandPath(bibFile);
             const citeKey = item.citeKey;
@@ -253,6 +270,7 @@ export class BibManager {
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].match(new RegExp(`^@.*{${citeKey},`))) {
                     vscode.window.showInformationMessage(`Entry for @${citeKey} already exists in bibliography`);
+                    this.insertCite(item, editor, fileType);
                     return;
                 }
             }
@@ -262,7 +280,7 @@ export class BibManager {
             const bibEntry = await this.bbtExport(item);
             // if bibEntry is empty, return (probably could not connect to BBT server)
             if (bibEntry.trim() === '') {
-               return;
+                return;
             }
 
             // check if bibEntry is valid
@@ -270,6 +288,8 @@ export class BibManager {
                 vscode.window.showErrorMessage('Invalid BibLaTeX entry. Not updating bibliography file.');
                 return;
             }
+
+            this.insertCite(item, editor, fileType);
 
             // Add empty line before new entry if file is not empty
             const needsEmptyLine = bibContent.trim().length > 0 && !bibContent.trim().endsWith('\n');
@@ -321,7 +341,17 @@ export class BibManager {
         }
 
         return options;
+    }
 
+    private insertCite(item: any, editor: vscode.TextEditor, fileType: string) {
+        // Format citation key based on file type
+        const citeKey = item.citeKey;
+        let formattedCitation = formatCitation(citeKey, fileType);
+
+        // Insert citation
+        editor.edit(editBuilder => {
+            editBuilder.insert(editor.selection.active, formattedCitation);
+        });
     }
 }
 
