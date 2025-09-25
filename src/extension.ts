@@ -33,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
 
             // Create QuickPick items
             const quickPickItems = items.map(item => {
-                const authors = (`${item.firstName} ${item.lastName}`) || 'NA';
+                const authors = (`${item.firstName} ${item.lastName}` + (item.multiAuthor ? ' et al.' : '')) || 'NA';
 
                 return {
                     label: `${authors} (${item.year || 'n.d.'})`,

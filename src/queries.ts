@@ -16,7 +16,8 @@ SELECT DISTINCT
     creators.firstName,
     creators.lastName,
     max(CASE WHEN fields.fieldName = 'title' THEN itemDataValues.value END) AS title,
-    max(CASE WHEN fields.fieldName = 'date' THEN itemDataValues.value END) AS date
+    max(CASE WHEN fields.fieldName = 'date' THEN itemDataValues.value END) AS date,
+    max(itemCreators.orderIndex) AS multiAuthor
 FROM
     items
     INNER JOIN itemCreators ON items.itemID = itemCreators.itemID
@@ -25,7 +26,7 @@ FROM
     INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
     LEFT JOIN fields ON itemData.fieldID = fields.fieldID
 WHERE
-    itemCreators.orderIndex = 0
+    itemCreators.orderIndex IN (0, 1)
 GROUP BY
     items.key
 `;

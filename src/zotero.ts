@@ -111,6 +111,7 @@ export class ZoteroDatabase {
                 const lastNameIndex = columns.indexOf('lastName');
                 const titleIndex = columns.indexOf('title');
                 const dateIndex = columns.indexOf('date');
+                const multiAuthorIndex = columns.indexOf('multiAuthor');
                 
                 for (const row of values) {
                     const zoteroKey = row[zoteroKeyIndex] as string;
@@ -124,7 +125,8 @@ export class ZoteroDatabase {
                             firstName: row[firstNameIndex],
                             lastName: row[lastNameIndex],
                             title: row[titleIndex],
-                            year: extractYear(row[dateIndex] as string || '')
+                            year: extractYear(row[dateIndex] as string || ''),
+                            multiAuthor: row[multiAuthorIndex] as number > 0
                         };
                         
                         items.push(item);
