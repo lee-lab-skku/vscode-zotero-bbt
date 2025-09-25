@@ -53,6 +53,7 @@ For any citations that were inserted using this extension, you can:
 * `zotero.zoteroDbPath`: Path to Zotero database file (default: `~/Zotero/zotero.sqlite`).
 * `zotero.betterBibtexDbPath`: Path to Better BibTex database file (default: `~/Zotero/better-bibtex.sqlite`).
 * `zotero.betterBibtexTranslator`: Better BibTeX translator to use for exporting entries (default: `Better BibLaTeX`).
+* `zotero.serverUrl`: URL of the Better BibTeX server (default: `http://localhost:23119`); could be useful if you run Better BibTeX server on a different port or inside a container.
 
 ## Release Notes
 

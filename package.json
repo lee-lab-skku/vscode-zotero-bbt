@@ -2,7 +2,7 @@
   "name": "vscode-zotero",
   "displayName": "VSCode Zotero",
   "description": "An extension to insert reference from Zotero library and add them to a bib file.",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "engines": {
     "vscode": "^1.102.0"
   },
@@ -52,6 +52,11 @@
           "default": "Better BibLaTeX",
           "enum": ["Better BibTeX", "Better BibLaTeX"],
           "description": "Better BibTeX translator to use for exporting entries"
+        },
+        "zotero.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:23119",
+          "description": "URL of the Better BibTeX server"
         }
       }
     }

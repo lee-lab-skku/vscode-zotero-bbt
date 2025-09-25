@@ -19,6 +19,7 @@ export class BibManager {
     private translator: string;
     private editor: vscode.TextEditor;
     private fileType: string;
+    private serverUrl: string;
 
     constructor(editor: vscode.TextEditor, fileType: string) {
         const config = vscode.workspace.getConfiguration('zotero');
@@ -26,12 +27,13 @@ export class BibManager {
         this.translator = translator;
         this.editor = editor;
         this.fileType = fileType;
+        this.serverUrl = config.get<string>('serverUrl', 'http://localhost:23119');
     }
 
     public async bbtExport(
         item: any
     ): Promise<string> {
-        const url = 'http://localhost:23119/better-bibtex/json-rpc';
+        const url = `${this.serverUrl}/better-bibtex/json-rpc`;
 
         const payload = {
             jsonrpc: '2.0',
