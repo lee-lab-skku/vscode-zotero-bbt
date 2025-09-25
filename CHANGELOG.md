@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.1.1] - 2025-09-24
+
+- Fixed issue where `libraryID` is not correctly handled when communicating with Better BibTeX (issue #7; PR #8; thanks to @mirinae3145).
+
 ## [1.1.0] - 2025-09-24
 
 ### Breaking changes
