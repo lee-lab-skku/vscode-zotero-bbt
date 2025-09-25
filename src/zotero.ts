@@ -4,9 +4,7 @@ import initSqlJs, { Database } from 'sql.js';
 import {
     queryBbt,
     queryItems,
-    queryZoteroKey,
-    queryPdfByZoteroKey,
-    queryDoiByZoteroKey
+    queryZoteroKey
 } from './queries';
 import {
     handleError,
@@ -158,19 +156,6 @@ export class ZoteroDatabase {
 
         const options = [];
         options.push({ type: 'zotero', key: zoteroKey });
-
-        const sqlPdf = this.db.exec(queryPdfByZoteroKey(zoteroKey));
-        const pdfKey = this.getFirstValue(sqlPdf, 'pdfKey');
-
-        if (pdfKey) {
-            options.push({ type: 'pdf', key: pdfKey });
-        }
-        const sqlDoi = this.db.exec(queryDoiByZoteroKey(zoteroKey));
-        const doi = this.getFirstValue(sqlDoi, 'value');
-
-        if (doi) {
-            options.push({ type: 'doi', key: doi });
-        }
 
         return options;
     }

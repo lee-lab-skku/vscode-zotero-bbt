@@ -97,29 +97,12 @@ export function activate(context: vscode.ExtensionContext) {
 
             const openOptions = zoteroDb.getOpenOptions(citeKey);
             if (openOptions.length === 0) {
-                vscode.window.showInformationMessage(`No PDF or DOI found for this item`);
+                vscode.window.showInformationMessage(`No item found for citation key: ${citeKey}`);
                 return;
             }
-            if (openOptions.length === 1) {
-                openAttachment(openOptions[0]);
-            } else {
-                // Show QuickPick for multiple options
-                const quickPickItems = openOptions.map((option, index) => ({
-                    label: option.type === 'pdf' ? 'Open PDF' :
-                        option.type === 'doi' ? 'Open DOI link' :
-                            option.type === 'zotero' ? 'Open in Zotero' : '',
-                    option: option,
-                    index: index
-                }));
-
-                const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
-                    placeHolder: 'Choose action'
-                });
-
-                if (selectedItem) {
-                    openAttachment(selectedItem.option);
-                }
-            }
+            
+            // Always open in Zotero directly (first option is always Zotero)
+            openAttachment(openOptions[0]);
         } catch (error) {
             handleError(error, `Error occurred while opening Zotero item`);
         } finally {
