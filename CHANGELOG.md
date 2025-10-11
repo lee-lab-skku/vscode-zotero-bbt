@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- If no workspace is open, resolve `*.bib` path relative to the folder of the active editor.
+
 ## [1.1.2] - 2025-09-25
 
 - Added option to set a custom url for the Better BibTeX server in the extension settings (issue #9).
