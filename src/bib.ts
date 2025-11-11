@@ -89,9 +89,9 @@ export class BibManager {
             const quartoYmlPath = path.join(workspaceFolders[0].uri.fsPath, '_quarto.yml');
             if (fs.existsSync(quartoYmlPath)) {
                 const quartoYml = fs.readFileSync(quartoYmlPath, 'utf8');
-                const quartoMatch = quartoYml.match(/bibliography:\s*['"]?(.+?)['"]?(\s|$)/);
+                const quartoMatch = quartoYml.match(/['"]?([^'"\s]+\.bib)['"]?/);
                 if (quartoMatch) {
-                    return quartoMatch[1];
+                    return quartoMatch[0];
                 }
             }
         }
