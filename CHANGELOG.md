@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.1.3] - 2025-11-11
+
+- Fixed handling of `*.bib` file paths in `_quarto.yml` files (issue #10).
+  - When there are multiple `*.bib` files specified in `_quarto.yml`, only the first one is used (for now).
 - If no workspace is open, resolve `*.bib` path relative to the folder of the active editor.
 
 ## [1.1.2] - 2025-09-25
