@@ -59,6 +59,13 @@ For any citations that were inserted using this extension, you can:
 
 See [CHANGELOG.md](CHANGELOG.md)
 
+## VSCodium Users
+
+If you are using VSCodium (or any other VSCode fork that does not have Marketplace access), you can obtain the extension by either:
+
+- Download the `.vsix` file from the [Releases page](https://github.com/jinvim/vscode-zotero/releases); or
+- Ues the [VSIX Download Tool](https://github.com/jinvim/vscode-zotero/issues/11#issuecomment-3565297653) to download directly from the Marketplace (thanks to @jiangshiguo).
+
 ## Todo
 
 - [x] Performance optimization
