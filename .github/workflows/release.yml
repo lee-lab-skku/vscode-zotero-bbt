@@ -69,7 +69,6 @@ jobs:
 
       - name: Install VSCE
         run: |
-          # Install latest version with better Node.js compatibility
           npm install -g @vscode/vsce@latest
 
       - name: Compile TypeScript
@@ -77,7 +76,6 @@ jobs:
 
       - name: Package extension
         run: |
-          # Get version and name from package.json for proper filename
           VERSION=$(node -p "require('./package.json').version")
           NAME=$(node -p "require('./package.json').name")
           VSIX_NAME="${NAME}-${VERSION}.vsix"
@@ -92,7 +90,6 @@ jobs:
             npx @vscode/vsce@latest package --out "$VSIX_NAME"
           }
           
-          # Verify the file was created
           ls -la "$VSIX_NAME"
 
       - name: Create Release
@@ -103,22 +100,6 @@ jobs:
         with:
           tag_name: v${{ needs.check-version.outputs.package-version }}
           name: v${{ needs.check-version.outputs.package-version }}
-          body: |
-            ## VSCode Zotero Extension v${{ needs.check-version.outputs.package-version }}
-            
-            ### Changes
-            - Version bump from v${{ needs.check-version.outputs.latest-version }} to v${{ needs.check-version.outputs.package-version }}
-            
-            ### Installation
-            Download the `.vsix` file and install it in VSCode using:
-            ```
-            code --install-extension vscode-zotero-${{ needs.check-version.outputs.package-version }}.vsix
-            ```
-            
-            Or install via VSCode UI: Extensions → Install from VSIX...
-            
-            ### What's New
-            Check the [CHANGELOG.md](CHANGELOG.md) for detailed changes.
           files: |
             *.vsix
           draft: false
