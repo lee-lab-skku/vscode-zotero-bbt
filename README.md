@@ -10,7 +10,7 @@
 
 ## Installation
 
-1. Go to the [Releases](https://github.com/AAML/vscode-zotero/releases) page
+1. Go to the [Releases](https://github.com/lee-lab-skku/vscode-zotero-bbt/releases) page
 2. Download the latest `.vsix` file from the release assets
 3. In VSCode, open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
 4. Run the command "Extensions: Install from VSIX..."
