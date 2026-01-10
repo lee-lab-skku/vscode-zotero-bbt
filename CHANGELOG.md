@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-01-09
+
+- Security update for dependencies.
+
 ## [1.1.3] - 2025-11-11
 
 - Fixed handling of `*.bib` file paths in `_quarto.yml` files (issue #10).
