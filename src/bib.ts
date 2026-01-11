@@ -75,6 +75,28 @@ export class BibManager {
         }
     }
 
+    private async locateBibMd(text: string): Promise<string | null> {
+        // Look for bibliography in YAML header
+        const match = text.match(/bibliography:\s*['"]?(.+?)['"]?(\s|$)/);
+        if (match) {
+            return match[1];
+        }
+
+        // Check for _quarto.yml in project root
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders) {
+            const quartoYmlPath = path.join(workspaceFolders[0].uri.fsPath, '_quarto.yml');
+            if (fs.existsSync(quartoYmlPath)) {
+                const quartoYml = fs.readFileSync(quartoYmlPath, 'utf8');
+                const quartoMatch = quartoYml.match(/['"]?([^'"\s]+\.bib)['"]?/);
+                if (quartoMatch) {
+                    return quartoMatch[0];
+                }
+            }
+        }
+        return await this.locateWorkspaceBib();
+    }
+
     private async locateBibTex(text: string): Promise<string | null> {
         // Look for \bibliography or \addbibresource
         const bibMatch = text.match(/\\bibliography\{['"]?([^'"{}]+)['"]?\}/);
