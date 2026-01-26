@@ -74,6 +74,7 @@ If you are using VSCodium (or any other VSCode fork that does not have Marketpla
 - [x] Support both bibtex and biblatex formats.
 - [ ] Code cleanup
 - [ ] Better handling of multiple Zotero libraries
+- [ ] Better handling of appending citation to existing list of citations [e.g., automatically convert `@item1` to `@item1, @item2` when inserting second citation]
 
 ## Notes
 

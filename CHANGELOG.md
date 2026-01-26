@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-01-26
+
+- Temporary fix for appending citations to existing citation lists for `*.tex` files (issue #13).
+  - Only the `citekey` will be inserted at the cursor position.
+  - Full support for this feature is planned for a future release.
+- Updated dependency versions.
+
 ## [1.1.4] - 2026-01-09
 
 - Security update for dependencies.

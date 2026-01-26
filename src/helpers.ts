@@ -52,7 +52,8 @@ export function formatCitation(citeKey: string, fileType: string): string {
         case 'latex':
         case 'tex':
         case 'plaintex':
-            return `\\cite{${citeKey}}`;
+            // return `\\cite{${citeKey}}`;
+            return `${citeKey}`; // just return the citkey for TeX files
         case 'markdown':
         case 'quarto':
             return `@${citeKey}`;
