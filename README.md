@@ -67,6 +67,10 @@ If you are using VSCodium (or any other VSCode fork that does not have Marketpla
 - Download the `.vsix` file from the [Releases page](https://github.com/jinvim/vscode-zotero/releases); or
 - Use the [VSIX Download Tool](https://github.com/jinvim/vscode-zotero/issues/11#issuecomment-3565297653) to download directly from the Marketplace (thanks to @jiangshiguo).
 
+## WSL Users
+
+If your TeX environment is set up in WSL, you can still use this plugin by using mirrored networking mode (see [here](https://github.com/jinvim/vscode-zotero/issues/9#issuecomment-3811615501); thanks to @mirinae3145).
+
 ## Todo
 
 - [x] Performance optimization
