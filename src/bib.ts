@@ -58,6 +58,10 @@ export class BibManager {
             
             // Handle JSON-RPC errors
             if (json.error) {
+                if (json.error.code === -32603) {
+                    vscode.window.showErrorMessage(`Cannot connect to Better BibTeX. Make sure Zotero window is open!`);
+                    return '';
+                }
                 vscode.window.showErrorMessage(`Better BibTeX error: ${json.error.message || 'Unknown error'}`);
                 return '';
             }
