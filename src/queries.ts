@@ -57,7 +57,7 @@ export function queryZoteroKey(citeKey: string): string {
             `;
 };
 
-export function queryPdfByZoteroKey(zoteroKey: string): string {
+export function queryPdfByZoteroKey(zoteroKey: string, libraryID: number): string {
     return `
                 SELECT DISTINCT 
                     items.key as zoteroKey,
@@ -74,11 +74,13 @@ export function queryPdfByZoteroKey(zoteroKey: string): string {
                     LEFT JOIN itemAttachments ON items.itemID = itemAttachments.parentItemID AND itemAttachments.contentType = 'application/pdf'
                     LEFT JOIN items attachment_items ON itemAttachments.itemID = attachment_items.itemID
 				WHERE
-				  zoteroKey = '${zoteroKey}' AND fieldName = 'title';
+                    zoteroKey = '${zoteroKey}' AND 
+                    items.libraryID = ${libraryID} AND 
+                    fieldName = 'title';
     `;
 };
 
-export function queryDoiByZoteroKey(zoteroKey: string): string {
+export function queryDoiByZoteroKey(zoteroKey: string, libraryID: number): string {
     return `
                 SELECT DISTINCT 
                     items.key as zoteroKey,
@@ -92,9 +94,25 @@ export function queryDoiByZoteroKey(zoteroKey: string): string {
                     INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
                     INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
 				WHERE
-				    zoteroKey = '${zoteroKey}' AND fieldName = 'DOI';
+                    zoteroKey = '${zoteroKey}' AND 
+                    items.libraryID = ${libraryID} AND 
+                    fieldName = 'DOI';
     `;
 };
+
+export function queryGroupIDByLibraryID(libraryID: number): string {
+    return `
+                SELECT
+                    groupID, 
+					libraryID,
+                    name
+                FROM
+                    groups
+                WHERE
+                    libraryID = ${libraryID};
+    `;
+};
+
 
 export default {
     queryBbt,

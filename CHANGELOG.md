@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Fix handling of citation keys with hyphens (issue #14).
+- Fix opening items/pdfs in group libraries (issue #14).
+
 ## [1.1.5] - 2026-01-26
 
 - Temporary fix for appending citations to existing citation lists for `*.tex` files (issue #13).

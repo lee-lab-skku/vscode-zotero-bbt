@@ -142,9 +142,17 @@ function openAttachment(option: any): void {
             vscode.env.openExternal(vscode.Uri.parse(`https://doi.org/${option.key}`));
             break;
         case 'zotero':
+            if (option.groupID) {
+                vscode.env.openExternal(vscode.Uri.parse(`zotero://select/groups/${option.groupID}/items/${option.key}`));
+                break;
+            }
             vscode.env.openExternal(vscode.Uri.parse(`zotero://select/library/items/${option.key}`));
             break;
         case 'pdf':
+            if (option.groupID) {
+                vscode.env.openExternal(vscode.Uri.parse(`zotero://open-pdf/groups/${option.groupID}/items/${option.key}`));
+                break;
+            }
             vscode.env.openExternal(vscode.Uri.parse(`zotero://open-pdf/library/items/${option.key}`));
             break;
         default:

@@ -7,7 +7,8 @@ import {
     queryCreators,
     queryZoteroKey,
     queryPdfByZoteroKey,
-    queryDoiByZoteroKey
+    queryDoiByZoteroKey,
+    queryGroupIDByLibraryID
 } from './queries';
 import {
     handleError,
@@ -168,7 +169,16 @@ export class ZoteroDatabase {
         }
 
         const sqlZoteroKey = this.bbt.exec(queryZoteroKey(citeKey));
+        // TODO: there might be multiple zotero items with the same citeKey (e.g., in group libraries)
+        // better handling needed here (but what are the chances? -- low priority for now)
         const zoteroKey = this.getFirstValue(sqlZoteroKey, 'zoteroKey');
+        const libraryID = this.getFirstValue(sqlZoteroKey, 'libraryID');
+        let groupID = null;
+
+        if (libraryID !== 1) {
+            const sqlGroup = this.db.exec(queryGroupIDByLibraryID(libraryID));
+            groupID = this.getFirstValue(sqlGroup, 'groupID');
+        }
 
         if (!zoteroKey) {
             vscode.window.showErrorMessage(`Could not find Zotero key for ${citeKey}`);
@@ -176,15 +186,15 @@ export class ZoteroDatabase {
         }
 
         const options = [];
-        options.push({ type: 'zotero', key: zoteroKey });
+        options.push({ type: 'zotero', key: zoteroKey, groupID: groupID });
 
-        const sqlPdf = this.db.exec(queryPdfByZoteroKey(zoteroKey));
+        const sqlPdf = this.db.exec(queryPdfByZoteroKey(zoteroKey, libraryID));
         const pdfKey = this.getFirstValue(sqlPdf, 'pdfKey');
 
         if (pdfKey) {
-            options.push({ type: 'pdf', key: pdfKey });
+            options.push({ type: 'pdf', key: pdfKey, groupID: groupID });
         }
-        const sqlDoi = this.db.exec(queryDoiByZoteroKey(zoteroKey));
+        const sqlDoi = this.db.exec(queryDoiByZoteroKey(zoteroKey, libraryID));
         const doi = this.getFirstValue(sqlDoi, 'value');
 
         if (doi) {
