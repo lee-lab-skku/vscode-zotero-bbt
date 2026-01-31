@@ -27,7 +27,7 @@ export class BibManager {
         this.translator = translator;
         this.editor = editor;
         this.fileType = fileType;
-        this.serverUrl = config.get<string>('serverUrl', 'http://localhost:23119');
+        this.serverUrl = 'http://localhost:23119';
     }
 
     public async bbtExport(

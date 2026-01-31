@@ -52,11 +52,6 @@
           "default": "Better BibLaTeX",
           "enum": ["Better BibTeX", "Better BibLaTeX"],
           "description": "Better BibTeX translator to use for exporting entries"
-        },
-        "zotero.serverUrl": {
-          "type": "string",
-          "default": "http://localhost:23119",
-          "description": "URL of the Better BibTeX server"
         }
       }
     }
