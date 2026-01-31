@@ -86,7 +86,8 @@ export function activate(context: vscode.ExtensionContext) {
             // Get the current position and word under cursor
             const position = editor.selection.active;
             const document = editor.document;
-            const wordRange = document.getWordRangeAtPosition(position);
+            // regex to match citation keys with hypehens
+            const wordRange = document.getWordRangeAtPosition(position, /@?[\w-]+/);
 
             if (!wordRange) {
                 vscode.window.showInformationMessage('No word found at cursor position');
