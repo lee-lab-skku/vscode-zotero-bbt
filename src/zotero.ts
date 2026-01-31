@@ -8,11 +8,13 @@ import {
     queryZoteroKey,
     queryPdfByZoteroKey,
     queryDoiByZoteroKey,
-    queryGroupIDByLibraryID
+    queryGroupIDByLibraryID,
+    queryGroupItemsByZoterokey
 } from './queries';
 import {
     handleError,
-    extractYear
+    extractYear,
+    formatTypes
 } from './helpers';
 
 interface DatabaseOptions {
@@ -161,7 +163,7 @@ export class ZoteroDatabase {
         }
     }
 
-    public getOpenOptions(citeKey: string): Array<any> {
+    public async getOpenOptions(citeKey: string): Promise<any[]> {
 
         if (!this.db || !this.bbt) {
             vscode.window.showErrorMessage('Database not connected');
@@ -171,9 +173,42 @@ export class ZoteroDatabase {
         const sqlZoteroKey = this.bbt.exec(queryZoteroKey(citeKey));
         // TODO: there might be multiple zotero items with the same citeKey (e.g., in group libraries)
         // better handling needed here (but what are the chances? -- low priority for now)
-        const zoteroKey = this.getFirstValue(sqlZoteroKey, 'zoteroKey');
-        const libraryID = this.getFirstValue(sqlZoteroKey, 'libraryID');
         let groupID = null;
+        let zoteroKey = this.getFirstValue(sqlZoteroKey, 'zoteroKey');
+        let libraryID = this.getFirstValue(sqlZoteroKey, 'libraryID');
+
+        // if there are multiple results with the same citeKey, show picker to select one
+        if (sqlZoteroKey[0].values.length > 1) {
+            // use queryGroupItemsByZoterokey to get items by zoteroKey and libraryID
+            // then show picker to select one
+            const items = this.getValues(sqlZoteroKey).map(result => {
+                const sqlItem = this.db?.exec(queryGroupItemsByZoterokey(result.zoteroKey, result.libraryID));
+                const item = this.getValues(sqlItem!)[0];
+                return item;
+            });
+            console.log(items);
+
+            const quickPickItems = items.map(item => {
+                const icon = formatTypes(item.typeName);
+                const libraryName = item.libraryName || 'My Library';
+
+                return {
+                    label: `${icon} ${item.title}`,
+                    item: item,
+                    detail: `${libraryName}`
+                };
+            });
+            let selected = await vscode.window.showQuickPick(quickPickItems, {
+                placeHolder: `Multiple items found with cite key @${citeKey}. Please select one (default: first match):`,
+                matchOnDescription: true,
+                matchOnDetail: true
+            });
+
+            if (selected) {
+                zoteroKey = selected.item.zoteroKey;
+                libraryID = selected.item.libraryID;
+            }
+        }
 
         if (libraryID !== 1) {
             const sqlGroup = this.db.exec(queryGroupIDByLibraryID(libraryID));
@@ -233,5 +268,20 @@ export class ZoteroDatabase {
             return null;
         }
         return values[0][columnIndex];
+    }
+
+    private getValues(sqlResult: initSqlJs.QueryExecResult[]): any[] {
+        const { columns, values } = sqlResult[0];
+
+        // return results as array of objects
+        const results: any[] = [];
+        for (const row of values) {
+            const result: any = {};
+            for (let i = 0; i < columns.length; i++) {
+                result[columns[i]] = row[i];
+            }
+            results.push(result);
+        }
+        return results;
     }
 }
