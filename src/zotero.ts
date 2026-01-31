@@ -171,6 +171,14 @@ export class ZoteroDatabase {
         }
 
         const sqlZoteroKey = this.bbt.exec(queryZoteroKey(citeKey));
+        
+        
+        // handle non-existent citeKey
+        if (sqlZoteroKey.length === 0) {
+            vscode.window.showErrorMessage(`Could not find Zotero item for ${citeKey}`);
+            return null;
+        }
+
         let groupID = null;
         let zoteroKey = this.getFirstValue(sqlZoteroKey)['zoteroKey'];
         let libraryID = this.getFirstValue(sqlZoteroKey)['libraryID'];
@@ -208,11 +216,6 @@ export class ZoteroDatabase {
         if (libraryID !== 1) {
             const sqlGroup = this.db.exec(queryGroupIDByLibraryID(libraryID));
             groupID = this.getFirstValue(sqlGroup)['groupID'];
-        }
-
-        if (!zoteroKey) {
-            vscode.window.showErrorMessage(`Could not find Zotero key for ${citeKey}`);
-            return null;
         }
 
         const options = [];
