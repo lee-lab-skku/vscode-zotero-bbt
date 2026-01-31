@@ -75,8 +75,8 @@ If your TeX environment is set up in WSL, you can still use this plugin by using
 - [x] Performance optimization
 - [x] Rewrite `.bib` reader/writer so that it does not require Better Bibtex database.
 - [x] Support both bibtex and biblatex formats.
+- [x] Better handling of multiple Zotero libraries
 - [ ] Code cleanup
-- [ ] Better handling of multiple Zotero libraries
 - [ ] Better handling of appending citation to existing list of citations [e.g., automatically convert `@item1` to `@item1, @item2` when inserting second citation]
 
 ## Notes
