@@ -2,9 +2,9 @@
   "name": "vscode-zotero",
   "displayName": "VSCode Zotero",
   "description": "An extension to insert reference from Zotero library and add them to a bib file.",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "engines": {
-    "vscode": "^1.108.1"
+    "vscode": "^1.106.0"
   },
   "categories": [
     "Other"
@@ -68,7 +68,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "25.x",
     "@types/sql.js": "^1.4.9",
-    "@types/vscode": "^1.108.1",
+    "@types/vscode": "^1.106.0",
     "@typescript-eslint/eslint-plugin": "^8.53.1",
     "@typescript-eslint/parser": "^8.53.1",
     "@vscode/test-cli": "^0.0.12",
