@@ -2,9 +2,19 @@
 
 ## [Unreleased]
 
-- Fix handling of citation keys with hyphens (issue #14).
-- Fix opening items/pdfs in group libraries (issue #14).
+## [1.2.0] - 2026-01-31
+
+### Breaking changes
+
 - Removed `zotero.serverUrl` configuration option (in favor of using WSL in mirrored networking mode; see #9).
+
+### New features
+
+- Added support for opening items/pdfs in group libraries (issue #14).
+- If there are multiple items with the same `citeKey`, user will be prompted to select the desired item from a list.
+
+### Bug fixes
+- Fix handling of citation keys with hyphens (issue #14).
 
 ## [1.1.5] - 2026-01-26
 
