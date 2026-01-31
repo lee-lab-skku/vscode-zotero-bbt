@@ -163,32 +163,25 @@ export class ZoteroDatabase {
         }
     }
 
-    public async getOpenOptions(citeKey: string): Promise<any[]> {
+    public async getOpenOptions(citeKey: string): Promise<any[] | null> {
 
         if (!this.db || !this.bbt) {
             vscode.window.showErrorMessage('Database not connected');
-            return [];
+            return null;
         }
 
         const sqlZoteroKey = this.bbt.exec(queryZoteroKey(citeKey));
-        // TODO: there might be multiple zotero items with the same citeKey (e.g., in group libraries)
-        // better handling needed here (but what are the chances? -- low priority for now)
         let groupID = null;
-        let zoteroKey = this.getFirstValue(sqlZoteroKey, 'zoteroKey');
-        let libraryID = this.getFirstValue(sqlZoteroKey, 'libraryID');
+        let zoteroKey = this.getFirstValue(sqlZoteroKey)['zoteroKey'];
+        let libraryID = this.getFirstValue(sqlZoteroKey)['libraryID'];
 
         // if there are multiple results with the same citeKey, show picker to select one
         if (sqlZoteroKey[0].values.length > 1) {
             // use queryGroupItemsByZoterokey to get items by zoteroKey and libraryID
             // then show picker to select one
-            const items = this.getValues(sqlZoteroKey).map(result => {
+            const quickPickItems = this.getValues(sqlZoteroKey).map(result => {
                 const sqlItem = this.db?.exec(queryGroupItemsByZoterokey(result.zoteroKey, result.libraryID));
-                const item = this.getValues(sqlItem!)[0];
-                return item;
-            });
-            console.log(items);
-
-            const quickPickItems = items.map(item => {
+                const item = this.getFirstValue(sqlItem!);
                 const icon = formatTypes(item.typeName);
                 const libraryName = item.libraryName || 'My Library';
 
@@ -198,39 +191,41 @@ export class ZoteroDatabase {
                     detail: `${libraryName}`
                 };
             });
+
             let selected = await vscode.window.showQuickPick(quickPickItems, {
-                placeHolder: `Multiple items found with cite key @${citeKey}. Please select one (default: first match):`,
+                placeHolder: `Multiple items found for @${citeKey}. Please select one:`,
                 matchOnDescription: true,
                 matchOnDetail: true
             });
-
-            if (selected) {
-                zoteroKey = selected.item.zoteroKey;
-                libraryID = selected.item.libraryID;
+            if (!selected) {
+                // open cancelled
+                return null;
             }
+            zoteroKey = selected.item.zoteroKey;
+            libraryID = selected.item.libraryID;
         }
 
         if (libraryID !== 1) {
             const sqlGroup = this.db.exec(queryGroupIDByLibraryID(libraryID));
-            groupID = this.getFirstValue(sqlGroup, 'groupID');
+            groupID = this.getFirstValue(sqlGroup)['groupID'];
         }
 
         if (!zoteroKey) {
             vscode.window.showErrorMessage(`Could not find Zotero key for ${citeKey}`);
-            return [];
+            return null;
         }
 
         const options = [];
         options.push({ type: 'zotero', key: zoteroKey, groupID: groupID });
 
         const sqlPdf = this.db.exec(queryPdfByZoteroKey(zoteroKey, libraryID));
-        const pdfKey = this.getFirstValue(sqlPdf, 'pdfKey');
+        const pdfKey = this.getFirstValue(sqlPdf)['pdfKey'];
 
         if (pdfKey) {
             options.push({ type: 'pdf', key: pdfKey, groupID: groupID });
         }
         const sqlDoi = this.db.exec(queryDoiByZoteroKey(zoteroKey, libraryID));
-        const doi = this.getFirstValue(sqlDoi, 'value');
+        const doi = this.getFirstValue(sqlDoi)['value'];
 
         if (doi) {
             options.push({ type: 'doi', key: doi });
@@ -257,17 +252,11 @@ export class ZoteroDatabase {
      * @param columnName The name of the column to retrieve the value from.
      * @returns The first value in the specified column, or null if not found.
      */
-    private getFirstValue(sqlResult: initSqlJs.QueryExecResult[], columnName: string): any | null {
+    private getFirstValue(sqlResult: initSqlJs.QueryExecResult[]): any | null {
         if (sqlResult.length === 0) {
             return null;
         }
-        const { columns, values } = sqlResult[0];
-        const columnIndex = columns.indexOf(columnName);
-
-        if (columnIndex === -1 || values.length === 0) {
-            return null;
-        }
-        return values[0][columnIndex];
+        return this.getValues(sqlResult)[0];
     }
 
     private getValues(sqlResult: initSqlJs.QueryExecResult[]): any[] {

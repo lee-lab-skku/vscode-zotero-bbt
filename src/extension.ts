@@ -103,6 +103,10 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             const openOptions = await zoteroDb.getOpenOptions(citeKey);
+            if (!openOptions) {
+                return;
+            }
+
             if (openOptions.length === 0) {
                 vscode.window.showInformationMessage(`No PDF or DOI found for this item`);
                 return;
