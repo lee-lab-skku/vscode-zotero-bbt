@@ -13,8 +13,8 @@ export const queryItems = `
 SELECT DISTINCT 
     items.key AS zoteroKey,
     items.libraryID,
-    creators.firstName,
-    creators.lastName,
+    max(CASE WHEN itemCreators.orderIndex = 0 THEN creators.firstName END) AS firstName,
+    max(CASE WHEN itemCreators.orderIndex = 0 THEN creators.lastName END) AS lastName,
     max(CASE WHEN fields.fieldName = 'title' THEN itemDataValues.value END) AS title,
     max(CASE WHEN fields.fieldName = 'date' THEN itemDataValues.value END) AS date,
     max(itemCreators.orderIndex) AS multiAuthor
