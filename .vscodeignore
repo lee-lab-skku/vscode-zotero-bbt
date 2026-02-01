@@ -9,3 +9,5 @@ src/**
 **/.vscode-test.*
 **/*.js.map
 .github/**
+node_modules/sql.js/dist/**
+!node_modules/sql.js/dist/sql-wasm.*
