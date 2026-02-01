@@ -82,7 +82,7 @@
   "icon": "resources/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jinvim/vscode-zotero.git"
+    "url": "https://github.com/lee-lab-skku/vscode-zotero-bbt.git"
   },
-  "publisher": "jinvim"
+  "publisher": "lee-lab-skku"
 }
