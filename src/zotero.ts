@@ -4,7 +4,9 @@ import initSqlJs, { Database } from 'sql.js';
 import {
     queryBbt,
     queryItems,
-    queryZoteroKey
+    queryZoteroKey,
+    queryGroupIDByLibraryID,
+    queryGroupItemsByZoterokey
 } from './queries';
 import {
     handleError,
@@ -139,23 +141,60 @@ export class ZoteroDatabase {
         }
     }
 
-    public getOpenOptions(citeKey: string): Array<any> {
+    public async getOpenOptions(citeKey: string): Promise<any[] | null> {
 
         if (!this.db || !this.bbt) {
             vscode.window.showErrorMessage('Database not connected');
-            return [];
+            return null;
         }
 
         const sqlZoteroKey = this.bbt.exec(queryZoteroKey(citeKey));
-        const zoteroKey = this.getFirstValue(sqlZoteroKey, 'zoteroKey');
+        let groupID = null;
+        let zoteroKey = this.getFirstValue(sqlZoteroKey)['zoteroKey'];
+        let libraryID = this.getFirstValue(sqlZoteroKey)['libraryID'];
+
+        // if there are multiple results with the same citeKey, show picker to select one
+        if (sqlZoteroKey[0].values.length > 1) {
+            // use queryGroupItemsByZoterokey to get items by zoteroKey and libraryID
+            // then show picker to select one
+            const quickPickItems = this.getValues(sqlZoteroKey).map(result => {
+                const sqlItem = this.db?.exec(queryGroupItemsByZoterokey(result.zoteroKey, result.libraryID));
+                const item = this.getFirstValue(sqlItem!);
+                const icon = formatTypes(item.typeName);
+                const libraryName = item.libraryName || 'My Library';
+
+                return {
+                    label: `${icon} ${item.title}`,
+                    item: item,
+                    detail: `${libraryName}`
+                };
+            });
+
+            let selected = await vscode.window.showQuickPick(quickPickItems, {
+                placeHolder: `Multiple items found for @${citeKey}. Please select one:`,
+                matchOnDescription: true,
+                matchOnDetail: true
+            });
+            if (!selected) {
+                // open cancelled
+                return null;
+            }
+            zoteroKey = selected.item.zoteroKey;
+            libraryID = selected.item.libraryID;
+        }
+
+        if (libraryID !== 1) {
+            const sqlGroup = this.db.exec(queryGroupIDByLibraryID(libraryID));
+            groupID = this.getFirstValue(sqlGroup)['groupID'];
+        }
 
         if (!zoteroKey) {
             vscode.window.showErrorMessage(`Could not find Zotero key for ${citeKey}`);
-            return [];
+            return null;
         }
 
         const options = [];
-        options.push({ type: 'zotero', key: zoteroKey });
+        options.push({ type: 'zotero', key: zoteroKey, groupID: groupID });
 
         return options;
     }
@@ -178,16 +217,25 @@ export class ZoteroDatabase {
      * @param columnName The name of the column to retrieve the value from.
      * @returns The first value in the specified column, or null if not found.
      */
-    private getFirstValue(sqlResult: initSqlJs.QueryExecResult[], columnName: string): any | null {
+    private getFirstValue(sqlResult: initSqlJs.QueryExecResult[]): any | null {
         if (sqlResult.length === 0) {
             return null;
         }
-        const { columns, values } = sqlResult[0];
-        const columnIndex = columns.indexOf(columnName);
+        return this.getValues(sqlResult)[0];
+    }
 
-        if (columnIndex === -1 || values.length === 0) {
-            return null;
+    private getValues(sqlResult: initSqlJs.QueryExecResult[]): any[] {
+        const { columns, values } = sqlResult[0];
+
+        // return results as array of objects
+        const results: any[] = [];
+        for (const row of values) {
+            const result: any = {};
+            for (let i = 0; i < columns.length; i++) {
+                result[columns[i]] = row[i];
+            }
+            results.push(result);
         }
-        return values[0][columnIndex];
+        return results;
     }
 }

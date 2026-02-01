@@ -80,7 +80,8 @@ export function activate(context: vscode.ExtensionContext) {
             // Get the current position and word under cursor
             const position = editor.selection.active;
             const document = editor.document;
-            const wordRange = document.getWordRangeAtPosition(position);
+            // regex to match citation keys with hypehens
+            const wordRange = document.getWordRangeAtPosition(position, /@?[\w-]+/);
 
             if (!wordRange) {
                 vscode.window.showInformationMessage('No word found at cursor position');
@@ -95,7 +96,11 @@ export function activate(context: vscode.ExtensionContext) {
                 citeKey = citeKey.substring(1);
             }
 
-            const openOptions = zoteroDb.getOpenOptions(citeKey);
+            const openOptions = await zoteroDb.getOpenOptions(citeKey);
+            if (!openOptions) {
+                return;
+            }
+
             if (openOptions.length === 0) {
                 vscode.window.showInformationMessage(`No item found for citation key: ${citeKey}`);
                 return;
@@ -118,9 +123,17 @@ function openAttachment(option: any): void {
             vscode.env.openExternal(vscode.Uri.parse(`https://doi.org/${option.key}`));
             break;
         case 'zotero':
+            if (option.groupID) {
+                vscode.env.openExternal(vscode.Uri.parse(`zotero://select/groups/${option.groupID}/items/${option.key}`));
+                break;
+            }
             vscode.env.openExternal(vscode.Uri.parse(`zotero://select/library/items/${option.key}`));
             break;
         case 'pdf':
+            if (option.groupID) {
+                vscode.env.openExternal(vscode.Uri.parse(`zotero://open-pdf/groups/${option.groupID}/items/${option.key}`));
+                break;
+            }
             vscode.env.openExternal(vscode.Uri.parse(`zotero://open-pdf/library/items/${option.key}`));
             break;
         default:

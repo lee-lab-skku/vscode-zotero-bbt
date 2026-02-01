@@ -26,7 +26,7 @@ export class BibManager {
         this.translator = translator;
         this.editor = editor;
         this.fileType = fileType;
-        this.serverUrl = config.get<string>('serverUrl', 'http://localhost:23119');
+        this.serverUrl = 'http://localhost:23119';
     }
 
     public async bbtExport(
@@ -57,6 +57,10 @@ export class BibManager {
             
             // Handle JSON-RPC errors
             if (json.error) {
+                if (json.error.code === -32603) {
+                    vscode.window.showErrorMessage(`Cannot connect to Better BibTeX. Make sure Zotero window is open!`);
+                    return '';
+                }
                 vscode.window.showErrorMessage(`Better BibTeX error: ${json.error.message || 'Unknown error'}`);
                 return '';
             }

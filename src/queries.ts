@@ -44,6 +44,40 @@ WHERE
     `;
 };
 
+export function queryGroupIDByLibraryID(libraryID: number): string {
+    return `
+SELECT
+    groupID,
+    libraryID,
+    name
+FROM
+    groups
+WHERE
+    libraryID = ${libraryID};
+    `;
+};
+
+export function queryGroupItemsByZoterokey(zoteroKey: string, libraryID: number): string {
+    return `
+SELECT DISTINCT 
+    items.key as zoteroKey,
+    parentItemDataValues.value as title,
+    itemTypes.typeName,
+    items.libraryID,
+    groups.name as libraryName
+FROM
+    items
+    INNER JOIN itemData ON itemData.itemID = items.itemID
+    INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
+    INNER JOIN itemData as parentItemData ON parentItemData.itemID = items.itemID
+    INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
+    INNER JOIN itemTypes ON itemTypes.itemTypeID = items.itemTypeID
+    LEFT JOIN groups ON items.libraryID = groups.libraryID
+WHERE
+    parentItemData.fieldID = 1 AND  items.key = '${zoteroKey}' AND items.libraryID = ${libraryID};
+    `;
+}
+
 export default {
     queryBbt,
     queryItems
