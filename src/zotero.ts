@@ -168,11 +168,10 @@ export class ZoteroDatabase {
             const quickPickItems = this.getValues(sqlZoteroKey).map(result => {
                 const sqlItem = this.db?.exec(queryGroupItemsByZoterokey(result.zoteroKey, result.libraryID));
                 const item = this.getFirstValue(sqlItem!);
-                const icon = formatTypes(item.typeName);
                 const libraryName = item.libraryName || 'My Library';
 
                 return {
-                    label: `${icon} ${item.title}`,
+                    label: `${item.title}`,
                     item: item,
                     detail: `${libraryName}`
                 };

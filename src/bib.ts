@@ -17,15 +17,13 @@ export class BibManager {
 
     private translator: string;
     private editor: vscode.TextEditor;
-    private fileType: string;
     private serverUrl: string;
 
-    constructor(editor: vscode.TextEditor, fileType: string) {
+    constructor(editor: vscode.TextEditor) {
         const config = vscode.workspace.getConfiguration('zotero');
         const translator = config.get<string>('betterBibtexTranslator', 'Better BibLaTeX');
         this.translator = translator;
         this.editor = editor;
-        this.fileType = fileType;
         this.serverUrl = 'http://localhost:23119';
     }
 

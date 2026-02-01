@@ -17,7 +17,6 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showErrorMessage('No active editor');
             return;
         }
-        const fileType = editor.document.languageId;
 
         try {
             // Connect to database
@@ -51,7 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             if (selected) {
-                const bibManager = new BibManager(editor, fileType);
+                const bibManager = new BibManager(editor);
                 bibManager.updateBibFile(selected.item);
             }
         } catch (error) {
@@ -71,7 +70,6 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showErrorMessage('No active editor');
             return;
         }
-        const fileType = editor.document.languageId;
 
         try {
             // Connect to database
