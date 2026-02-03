@@ -222,18 +222,23 @@ export class ZoteroDatabase {
         options.push({ type: 'zotero', key: zoteroKey, groupID: groupID });
 
         const sqlPdf = this.db.exec(queryPdfByZoteroKey(zoteroKey, libraryID));
-        const pdfKey = this.getFirstValue(sqlPdf)['pdfKey'];
+        if (sqlPdf.length > 0) {
+            const pdfKey = this.getFirstValue(sqlPdf)['pdfKey'];
 
-        if (pdfKey) {
-            options.push({ type: 'pdf', key: pdfKey, groupID: groupID });
+            if (pdfKey) {
+                options.push({ type: 'pdf', key: pdfKey, groupID: groupID });
+            }
         }
+
         const sqlDoi = this.db.exec(queryDoiByZoteroKey(zoteroKey, libraryID));
-        const doi = this.getFirstValue(sqlDoi)['value'];
+        if (sqlDoi.length > 0) {
+            const doi = this.getFirstValue(sqlDoi)['value'];
 
-        if (doi) {
-            options.push({ type: 'doi', key: doi });
+            if (doi) {
+                options.push({ type: 'doi', key: doi });
+            }
         }
-
+        
         return options;
     }
 
