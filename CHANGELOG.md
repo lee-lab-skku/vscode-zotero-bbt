@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-02-03
+
+- Fixed bug where opening item without PDF / DOI would cause an error.
+
+
 ## [1.2.1] - 2026-01-31
 
 - Better error handling when searching zotero library by citation key.
