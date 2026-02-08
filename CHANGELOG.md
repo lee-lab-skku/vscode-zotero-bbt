@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Reduced binary size
+
 ## [1.2.2] - 2026-02-03
 
 - Fixed bug where opening item without PDF / DOI would cause an error.
