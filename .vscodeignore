@@ -10,3 +10,5 @@ vsc-extension-quickstart.md
 **/*.ts
 **/.vscode-test.*
 **/*.js.map
+node_modules/sql.js/dist/**
+!node_modules/sql.js/dist/sql-wasm.*
