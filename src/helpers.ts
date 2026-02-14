@@ -25,7 +25,11 @@ export function expandPath(filePath: string): string {
 }
 
 export function formatAuthors(creators: any[]): string {
-    const authors = creators.filter(creator => creator.creatorType === 'author');
+    let authors = creators.filter(creator => creator.creatorType === 'author');
+    if (authors.length === 0) {
+        // if no authors, try editors (e.g., for edited volumes)
+        authors = creators.filter(creator => creator.creatorType === 'editor');
+    }
 
     switch (authors.length) {
         case 0:
