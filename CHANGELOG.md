@@ -2,7 +2,10 @@
 
 ## [Unreleased]
 
-- Reduced binary size
+## [1.2.3] - 2026-02-13
+
+- Reduced binary size (PR #15; thanks to thanks to @mirinae3145)
+- Fixed issue where items with editors (e.g., book chapters with both authors and editors) would not be correctly shown in Quick Picks (e.g., shown as et al. even thuogh they have less than 3 authors).
 
 ## [1.2.2] - 2026-02-03
 
