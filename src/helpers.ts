@@ -25,15 +25,17 @@ export function expandPath(filePath: string): string {
 }
 
 export function formatAuthors(creators: any[]): string {
-    switch (creators.length) {
+    const authors = creators.filter(creator => creator.creatorType === 'author');
+
+    switch (authors.length) {
         case 0:
             return 'NA';
         case 1:
-            return `${creators[0].lastName}`;
+            return `${authors[0].lastName}`;
         case 2:
-            return `${creators[0].lastName} & ${creators[1].lastName}`;
+            return `${authors[0].lastName} & ${authors[1].lastName}`;
         default:
-            return `${creators[0].lastName} et al.`;
+            return `${authors[0].lastName} et al.`;
     }
 }
 
