@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.2.5] - 2026-02-18
+
+### Breaking changes
+
+- The extension will now run as a UI extension (#17). 
+- This means that the VS Code instance will use Zotero DB in the local machine (i.e., Zotero is assumed to be installed and running in the local machine, not the remote).
+
 ## [1.2.4] - 2026-02-17
 
 ### Breaking changes
