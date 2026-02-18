@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [1.2.4] - 2026-02-17
+
+### Breaking changes
+
+- New version of Better BibTeX introduces changes to the database schema (it no longer uses `better-bibtex.sqlite`; issue #16).
+- So the extension will now attempt to read citation keys directly from the Zotero database.
+- If the extension detects `better-bibtex.sqlite` file exists, it will fall back to trying to read from `better-bibtex.sqlite` (legacy method). 
+
 ## [1.2.3] - 2026-02-13
 
 - Reduced binary size (PR #15; thanks to thanks to @mirinae3145)
@@ -30,6 +38,7 @@
 - If there are multiple items with the same `citeKey`, user will be prompted to select the desired item from a list.
 
 ### Bug fixes
+
 - Fix handling of citation keys with hyphens (issue #14).
 
 ## [1.1.5] - 2026-01-26
@@ -60,9 +69,11 @@
 ## [1.1.0] - 2025-09-24
 
 ### Breaking changes
+
 - This plugin now requires Zotero running to add Bib(La)Tex entries. If the connection to Better BibTeX fails, an error message will be displayed.
 
 ### New features
+
 - Added feature to choose between BibTeX and BibLaTeX formats when adding citations. Users can set their preference in the extension settings (issue #2; PR #5; thanks to @mirinae3145).
 - In addition, exported Bib(La)Tex entries now respect the user's preference for ignoring certain keys as set in Better BibTeX settings (issue #2).
 - Improved performance by optimizing Zotero database access (up to 2x faster).
