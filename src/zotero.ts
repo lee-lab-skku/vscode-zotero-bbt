@@ -21,7 +21,7 @@ import {
 interface DatabaseOptions {
     zoteroDbPath: string;
     betterBibtexDbPath: string;
-    betterBibtexVersion: string;
+    betterBibtexLegacy: boolean;
 }
 
 export class ZoteroDatabase {
@@ -38,15 +38,12 @@ export class ZoteroDatabase {
      */
     public async connect(): Promise<boolean> {
         try {
-            // Check if files exist
-            await fs.access(this.options.zoteroDbPath);
             const SQL = await initSqlJs();
 
             const zoteroDbFile = await fs.readFile(this.options.zoteroDbPath);
             this.db = new SQL.Database(zoteroDbFile);
 
-            if (this.options.betterBibtexVersion === 'Legacy') {
-                await fs.access(this.options.betterBibtexDbPath);
+            if (this.options.betterBibtexLegacy) {
                 const bbtDbFile = await fs.readFile(this.options.betterBibtexDbPath);
                 this.bbt = new SQL.Database(bbtDbFile);
             }
@@ -85,7 +82,7 @@ export class ZoteroDatabase {
             vscode.window.showErrorMessage('Database not connected');
             return [];
         }
-        if (this.options.betterBibtexVersion === 'Legacy' && !this.bbt) {
+        if (this.options.betterBibtexLegacy && !this.bbt) {
             vscode.window.showErrorMessage('Database not connected');
             return [];
         }

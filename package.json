@@ -52,12 +52,6 @@
           "default": "Better BibLaTeX",
           "enum": ["Better BibTeX", "Better BibLaTeX"],
           "description": "Better BibTeX translator to use for exporting entries"
-        },
-        "zotero.betterBibtexVersion": {
-          "type": "string",
-          "default": "Default",
-          "enum": ["Default", "Legacy"],
-          "description": "Should the plugin use the legacy Better BibTeX with better-bibtex.sqlite database?"
         }
       }
     }

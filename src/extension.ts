@@ -1,3 +1,4 @@
+import { existsSync } from "fs";
 import * as vscode from 'vscode';
 import { ZoteroDatabase } from './zotero';
 import { BibManager } from './bib';
@@ -166,13 +167,24 @@ function openAttachment(option: any): void {
 
 function initZoteroDb(): ZoteroDatabase {
     const config = vscode.workspace.getConfiguration('zotero');
-    const zoteroDbPath = config.get<string>('zoteroDbPath', '~/Zotero/zotero.sqlite');
-    const betterBibtexDbPath = config.get<string>('betterBibtexDbPath', '~/Zotero/better-bibtex.sqlite');
+    let zoteroDbPath = config.get<string>('zoteroDbPath', '~/Zotero/zotero.sqlite');
+    let betterBibtexDbPath = config.get<string>('betterBibtexDbPath', '~/Zotero/better-bibtex.sqlite');
+    zoteroDbPath = expandPath(zoteroDbPath);
+    betterBibtexDbPath = expandPath(betterBibtexDbPath);
+
+    const zoteroDbExists = existsSync(zoteroDbPath);
+    const betterBibtexDbExists = existsSync(betterBibtexDbPath);
+
+    if (!zoteroDbExists) {
+        vscode.window.showErrorMessage(`Zotero database not found at path: ${zoteroDbPath}`);
+        throw new Error(`Zotero database not found at path: ${zoteroDbPath}`);
+    }
 
     return new ZoteroDatabase({
-        zoteroDbPath: expandPath(zoteroDbPath),
-        betterBibtexDbPath: expandPath(betterBibtexDbPath),
-        betterBibtexVersion: config.get<string>('betterBibtexVersion', 'Default')
+        zoteroDbPath: zoteroDbPath,
+        betterBibtexDbPath: betterBibtexDbPath,
+        // if better-bibtex.sqlite exists, we will use it to get citation keys (legacy method)
+        betterBibtexLegacy: betterBibtexDbExists 
     });
 }
 
