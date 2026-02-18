@@ -6,11 +6,12 @@ import {
     queryBbtLegacy,
     queryItems,
     queryCreators,
-    queryZoteroKey,
+    queryZoteroKeyLegacy,
     queryPdfByZoteroKey,
     queryDoiByZoteroKey,
     queryGroupIDByLibraryID,
-    queryGroupItemsByZoterokey
+    queryGroupItemsByZoterokey,
+    queryZoteroKey
 } from './queries';
 import {
     handleError,
@@ -90,6 +91,8 @@ export class ZoteroDatabase {
         try {
             // Execute queries
             const [sqlBbt, sqlItems, sqlCreators] = [
+                // if bbt do exist, use legacy method to get citation keys
+                // otherwise use the new method to get citation keys from zotero database
                 this.bbt? this.bbt.exec(queryBbtLegacy) : this.db.exec(queryBbt),
                 this.db.exec(queryItems),
                 this.db.exec(queryCreators)
@@ -169,14 +172,16 @@ export class ZoteroDatabase {
     }
 
     public async getOpenOptions(citeKey: string): Promise<any[] | null> {
-
-        if (!this.db || !this.bbt) {
+        if (!this.db) {
+            vscode.window.showErrorMessage('Database not connected');
+            return null;
+        }
+        if (this.options.betterBibtexLegacy && !this.bbt) {
             vscode.window.showErrorMessage('Database not connected');
             return null;
         }
 
-        const sqlZoteroKey = this.bbt.exec(queryZoteroKey(citeKey));
-        
+        const sqlZoteroKey = this.bbt? this.bbt.exec(queryZoteroKeyLegacy(citeKey)) : this.db.exec(queryZoteroKey(citeKey));
         
         // handle non-existent citeKey
         if (sqlZoteroKey.length === 0) {
