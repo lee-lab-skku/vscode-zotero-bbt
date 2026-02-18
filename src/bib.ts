@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 import {
-    expandPath,
     handleError,
     isValidBibEntry,
     formatCitation
@@ -30,6 +28,42 @@ export class BibManager {
         this.serverUrl = 'http://localhost:23119';
     }
 
+    private resolveBibUri(bibFile: string): vscode.Uri {
+        if (path.isAbsolute(bibFile)) {
+            return vscode.Uri.file(bibFile);
+        }
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+            return vscode.Uri.joinPath(workspaceFolders[0].uri, bibFile);
+        }
+        const activeEditor = vscode.window.activeTextEditor;
+        if (activeEditor) {
+            const docUri = activeEditor.document.uri;
+            const dirUri = docUri.with({ path: path.posix.dirname(docUri.path) });
+            return vscode.Uri.joinPath(dirUri, bibFile);
+        }
+        return vscode.Uri.file(bibFile);
+    }
+
+    private async fileExists(uri: vscode.Uri): Promise<boolean> {
+        try {
+            await vscode.workspace.fs.stat(uri);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    private async readFileAsString(uri: vscode.Uri): Promise<string> {
+        const data = await vscode.workspace.fs.readFile(uri);
+        return new TextDecoder('utf-8').decode(data);
+    }
+
+    private async writeFileFromString(uri: vscode.Uri, content: string): Promise<void> {
+        const data = new TextEncoder().encode(content);
+        await vscode.workspace.fs.writeFile(uri, data);
+    }
+
     public async bbtExport(
         item: any
     ): Promise<string> {
@@ -55,7 +89,7 @@ export class BibManager {
                 body: JSON.stringify(payload),
             });
             const json = await response.json();
-            
+
             // Handle JSON-RPC errors
             if (json.error) {
                 if (json.error.code === -32603) {
@@ -65,13 +99,13 @@ export class BibManager {
                 vscode.window.showErrorMessage(`Better BibTeX error: ${json.error.message || 'Unknown error'}`);
                 return '';
             }
-            
+
             // Ensure result is a string
             if (typeof json.result !== 'string') {
                 vscode.window.showErrorMessage('Better BibTeX returned invalid result format');
                 return '';
             }
-            
+
             return json.result;
 
         } catch (error) {
@@ -90,9 +124,9 @@ export class BibManager {
         // Check for _quarto.yml in project root
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (workspaceFolders) {
-            const quartoYmlPath = path.join(workspaceFolders[0].uri.fsPath, '_quarto.yml');
-            if (fs.existsSync(quartoYmlPath)) {
-                const quartoYml = fs.readFileSync(quartoYmlPath, 'utf8');
+            const quartoYmlUri = vscode.Uri.joinPath(workspaceFolders[0].uri, '_quarto.yml');
+            if (await this.fileExists(quartoYmlUri)) {
+                const quartoYml = await this.readFileAsString(quartoYmlUri);
                 const quartoMatch = quartoYml.match(/['"]?([^'"\s]+\.bib)['"]?/);
                 if (quartoMatch) {
                     return quartoMatch[0];
@@ -125,18 +159,18 @@ export class BibManager {
         if (!workspaceFolders || workspaceFolders.length === 0) {
             return null;
         }
-        const rootPath = workspaceFolders[0].uri.fsPath;
+        const rootUri = workspaceFolders[0].uri;
         const candidates = ['bibliography.bib', 'references.bib'];
         for (const candidate of candidates) {
-            const candidatePath = path.join(rootPath, candidate);
-            if (fs.existsSync(candidatePath)) {
+            const candidateUri = vscode.Uri.joinPath(rootUri, candidate);
+            if (await this.fileExists(candidateUri)) {
                 return candidate;
             }
         }
-        const files = fs.readdirSync(rootPath);
-        for (const file of files) {
-            if (file.endsWith('.bib')) {
-                return file;
+        const entries = await vscode.workspace.fs.readDirectory(rootUri);
+        for (const [name, type] of entries) {
+            if (name.endsWith('.bib') && type === vscode.FileType.File) {
+                return name;
             }
         }
         return null;
@@ -182,23 +216,21 @@ export class BibManager {
         }
 
         try {
-            const bibPath = expandPath(bibFile);
+            const bibUri = this.resolveBibUri(bibFile);
             const citeKey = item.citeKey;
 
             // Check if file exists
-            if (!fs.existsSync(bibPath)) {
-                // Create directory if it doesn't exist
-                const bibDir = path.dirname(bibPath);
-                if (!fs.existsSync(bibDir)) {
-                    fs.mkdirSync(bibDir, { recursive: true });
-                }
+            if (!await this.fileExists(bibUri)) {
+                // Create directory if it doesn't exist (createDirectory is recursive)
+                const dirUri = bibUri.with({ path: path.posix.dirname(bibUri.path) });
+                await vscode.workspace.fs.createDirectory(dirUri);
                 // Create empty file
-                fs.writeFileSync(bibPath, '');
+                await this.writeFileFromString(bibUri, '');
                 vscode.window.showInformationMessage(`Created new bibliography file at ${bibFile}`);
             }
 
             // Read file to check if entry already exists
-            const bibContent = fs.readFileSync(bibPath, 'utf8');
+            const bibContent = await this.readFileAsString(bibUri);
             const lines = bibContent.split('\n');
 
             // Check if entry already exists
@@ -211,7 +243,6 @@ export class BibManager {
             }
 
             // Get BibTeX entry
-
             const bibEntry = await this.bbtExport(item);
             // if bibEntry is empty or undefined, return (probably could not connect to BBT server)
             if (!bibEntry || bibEntry.trim() === '') {
@@ -228,24 +259,24 @@ export class BibManager {
 
             // Add empty line before new entry if file is not empty
             const needsEmptyLine = bibContent.trim().length > 0 && !bibContent.trim().endsWith('\n');
-            const entryToAdd = needsEmptyLine ? '\n' + bibEntry : bibEntry;
+            const newContent = bibContent + (needsEmptyLine ? '\n' : '') + bibEntry;
 
-            // Append entry to file
-            fs.appendFileSync(bibPath, entryToAdd);
+            // Write updated content
+            await this.writeFileFromString(bibUri, newContent);
             vscode.window.showInformationMessage(`Added @${citeKey} to ${bibFile}`);
         } catch (error) {
             handleError(error, `Failed to update bibliography file`);
         }
     }
 
-    public getOpenOptions(bibFile: string, citeKey: string): Array<any> {
-        const bibPath = expandPath(bibFile);
-        if (!fs.existsSync(bibPath)) {
-            vscode.window.showErrorMessage(`Bibliography file not found at ${bibPath}`);
+    public async getOpenOptions(bibFile: string, citeKey: string): Promise<Array<any>> {
+        const bibUri = this.resolveBibUri(bibFile);
+        if (!await this.fileExists(bibUri)) {
+            vscode.window.showErrorMessage(`Bibliography file not found at ${bibUri.toString()}`);
             return [];
         }
 
-        const bibContent = fs.readFileSync(bibPath, 'utf8');
+        const bibContent = await this.readFileAsString(bibUri);
         // Create regex to match the specific entry by cite key
         const entryRegex = new RegExp(`@\\w+\\{${citeKey},[^@]*?\\n\\}`, 'gs');
 
