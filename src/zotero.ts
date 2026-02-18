@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import initSqlJs, { Database } from 'sql.js';
 import {
     queryBbt,
+    queryBbtLegacy,
     queryItems,
     queryCreators,
     queryZoteroKey,
@@ -20,6 +21,7 @@ import {
 interface DatabaseOptions {
     zoteroDbPath: string;
     betterBibtexDbPath: string;
+    betterBibtexVersion: string;
 }
 
 export class ZoteroDatabase {
@@ -38,14 +40,16 @@ export class ZoteroDatabase {
         try {
             // Check if files exist
             await fs.access(this.options.zoteroDbPath);
-            await fs.access(this.options.betterBibtexDbPath);
-
             const SQL = await initSqlJs();
-            const zoteroDbFile = await fs.readFile(this.options.zoteroDbPath);
-            const bbtDbFile = await fs.readFile(this.options.betterBibtexDbPath);
 
+            const zoteroDbFile = await fs.readFile(this.options.zoteroDbPath);
             this.db = new SQL.Database(zoteroDbFile);
-            this.bbt = new SQL.Database(bbtDbFile);
+
+            if (this.options.betterBibtexVersion === 'Legacy') {
+                await fs.access(this.options.betterBibtexDbPath);
+                const bbtDbFile = await fs.readFile(this.options.betterBibtexDbPath);
+                this.bbt = new SQL.Database(bbtDbFile);
+            }
 
             return true;
         } catch (error) {
@@ -74,10 +78,14 @@ export class ZoteroDatabase {
     }
 
     /**
-     * Get items from Zotero database
+     * Get items from Zotero database (Legacy Better BibTeX only)
      */
     public async getItems(): Promise<any[]> {
-        if (!this.db || !this.bbt) {
+        if (!this.db) {
+            vscode.window.showErrorMessage('Database not connected');
+            return [];
+        }
+        if (this.options.betterBibtexVersion === 'Legacy' && !this.bbt) {
             vscode.window.showErrorMessage('Database not connected');
             return [];
         }
@@ -85,7 +93,7 @@ export class ZoteroDatabase {
         try {
             // Execute queries
             const [sqlBbt, sqlItems, sqlCreators] = [
-                this.bbt.exec(queryBbt),
+                this.bbt? this.bbt.exec(queryBbtLegacy) : this.db.exec(queryBbt),
                 this.db.exec(queryItems),
                 this.db.exec(queryCreators)
             ];

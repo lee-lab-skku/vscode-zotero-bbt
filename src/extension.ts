@@ -172,6 +172,7 @@ function initZoteroDb(): ZoteroDatabase {
     return new ZoteroDatabase({
         zoteroDbPath: expandPath(zoteroDbPath),
         betterBibtexDbPath: expandPath(betterBibtexDbPath),
+        betterBibtexVersion: config.get<string>('betterBibtexVersion', 'Default')
     });
 }
 
