@@ -29,20 +29,13 @@ export class BibManager {
     }
 
     private resolveBibUri(bibFile: string): vscode.Uri {
+        // if bibFile is an absolute path, return it as is
         if (path.isAbsolute(bibFile)) {
             return vscode.Uri.file(bibFile);
         }
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (workspaceFolders && workspaceFolders.length > 0) {
-            return vscode.Uri.joinPath(workspaceFolders[0].uri, bibFile);
-        }
-        const activeEditor = vscode.window.activeTextEditor;
-        if (activeEditor) {
-            const docUri = activeEditor.document.uri;
-            const dirUri = docUri.with({ path: path.posix.dirname(docUri.path) });
-            return vscode.Uri.joinPath(dirUri, bibFile);
-        }
-        return vscode.Uri.file(bibFile);
+        // otherwise, resolve it relative to the current document
+        const docDir = path.dirname(this.editor.document.uri.fsPath);
+        return vscode.Uri.file(path.join(docDir, bibFile));
     }
 
     private async fileExists(uri: vscode.Uri): Promise<boolean> {
@@ -270,7 +263,7 @@ export class BibManager {
     }
 
     public async getOpenOptions(bibFile: string, citeKey: string): Promise<Array<any>> {
-        const bibUri = this.resolveBibUri(bibFile);
+        const bibUri = await this.resolveBibUri(bibFile);
         if (!await this.fileExists(bibUri)) {
             vscode.window.showErrorMessage(`Bibliography file not found at ${bibUri.toString()}`);
             return [];
