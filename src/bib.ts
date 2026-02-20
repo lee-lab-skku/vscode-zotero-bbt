@@ -263,7 +263,7 @@ export class BibManager {
     }
 
     public async getOpenOptions(bibFile: string, citeKey: string): Promise<Array<any>> {
-        const bibUri = await this.resolveBibUri(bibFile);
+        const bibUri = this.resolveBibUri(bibFile);
         if (!await this.fileExists(bibUri)) {
             vscode.window.showErrorMessage(`Bibliography file not found at ${bibUri.toString()}`);
             return [];
