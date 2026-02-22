@@ -106,24 +106,36 @@ export class BibManager {
         }
     }
 
-    private async locateBibMd(text: string): Promise<string | null> {
-        // Look for bibliography in YAML header
-        const match = text.match(/bibliography:\s*['"]?(.+?)['"]?(\s|$)/);
+    private async locateBibMdYaml(text: string): Promise<string | null> {
+        // parse any *.bib file from YAML string
+        const match = text.match(/['"]?([^'"\s\[\],]+\.bib)['"]?/);
         if (match) {
             return match[1];
         }
+        return null;
+    }
 
+    private async locateBibMdProject(): Promise<string | null> {
         // Check for _quarto.yml in project root
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (workspaceFolders) {
             const quartoYmlUri = vscode.Uri.joinPath(workspaceFolders[0].uri, '_quarto.yml');
             if (await this.fileExists(quartoYmlUri)) {
                 const quartoYml = await this.readFileAsString(quartoYmlUri);
-                const quartoMatch = quartoYml.match(/['"]?([^'"\s]+\.bib)['"]?/);
-                if (quartoMatch) {
-                    return quartoMatch[0];
-                }
+                return await this.locateBibMdYaml(quartoYml);
             }
+        }
+        return null;
+    }
+
+    private async locateBibMd(text: string): Promise<string | null> {
+        const headerResult = await this.locateBibMdYaml(text);
+        if (headerResult) {
+            return headerResult;
+        }
+        const projectResult = await this.locateBibMdProject();
+        if (projectResult) {
+            return projectResult;
         }
         return await this.locateWorkspaceBib();
     }
