@@ -57,7 +57,7 @@ export class ZoteroDatabase {
             }
         }
     }
-    
+
     public isConnected(): boolean {
         return this.db !== null;
     }
@@ -73,15 +73,13 @@ export class ZoteroDatabase {
 
         try {
             const itemRows = this.getValues(this.db.exec(queryItems));
-            const items = itemRows.map(({ creators, date, ...rest }) => ({
+            return itemRows.map(({ creators, date, ...rest }) => ({
                 ...rest,
                 date,
                 year: extractYear(date || ''),
                 creators: (JSON.parse(creators) as any[])
-                    .filter(c => c.firstName !== null || c.lastName !== null)
                     .sort((a, b) => a.orderIndex - b.orderIndex)
             }));
-            return items;
         } catch (error) {
             handleError(error, `Error querying database`);
             return [];
@@ -121,13 +119,17 @@ export class ZoteroDatabase {
             libraryID = selected.libraryID;
         }
 
-        const { groupID, pdfKey, doi } = this.getFirstValue(
+        const openOptions = this.getFirstValue(
             this.db.exec(queryOpenOptions(zoteroKey, libraryID))
         );
+        if (!openOptions) {
+            return null;
+        }
+        const { groupID, pdfKey, doi } = openOptions;
 
         const options: any[] = [{ type: 'zotero', key: zoteroKey, groupID }];
         if (pdfKey) { options.push({ type: 'pdf', key: pdfKey, groupID }); }
-        if (doi)    { options.push({ type: 'doi', key: doi }); }
+        if (doi) { options.push({ type: 'doi', key: doi }); }
 
         return options;
     }
@@ -139,24 +141,18 @@ export class ZoteroDatabase {
         }
     }
 
-    /**
-     * Get the first value from a SQL result set.
-     * @param sqlResult The SQL result set.
-     * @param columnName The name of the column to retrieve the value from.
-     * @returns The first value in the specified column, or null if not found.
-     */
     private getFirstValue(sqlResult: initSqlJs.QueryExecResult[]): any | null {
-        if (sqlResult.length === 0) {
+        if (sqlResult.length === 0 || sqlResult[0].values.length === 0) {
             return null;
         }
         return this.getValues(sqlResult)[0];
     }
 
     private getValues(sqlResult: initSqlJs.QueryExecResult[]): any[] {
-        if (sqlResult.length === 0) {return [];}
-        
+        if (sqlResult.length === 0) { return []; }
+
         const { columns, values } = sqlResult[0];
-        return values.map(row => 
+        return values.map(row =>
             Object.fromEntries(columns.map((col, i) => [col, row[i]]))
         );
     }

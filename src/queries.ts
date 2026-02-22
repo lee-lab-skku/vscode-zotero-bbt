@@ -29,6 +29,7 @@ export const queryItems = `
             JOIN pivoted p        ON p.itemID = it.itemID
             LEFT JOIN itemCreators ic ON ic.itemID = it.itemID
             LEFT JOIN creators c      ON c.creatorID = ic.creatorID
+                AND (c.firstName IS NOT NULL OR c.lastName IS NOT NULL)
             LEFT JOIN creatorTypes ct ON ct.creatorTypeID = ic.creatorTypeID
             GROUP BY it.key, itypes.typeName, it.libraryID, p.title, p.date, p.citeKey;
             `;
