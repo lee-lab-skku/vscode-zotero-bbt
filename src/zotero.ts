@@ -2,9 +2,7 @@ import * as fs from 'fs/promises';
 import * as vscode from 'vscode';
 import initSqlJs, { Database } from 'sql.js';
 import {
-    queryBbt,
     queryItems,
-    queryCreators,
     queryPdfByZoteroKey,
     queryDoiByZoteroKey,
     queryGroupIDByLibraryID,
@@ -77,37 +75,16 @@ export class ZoteroDatabase {
         }
 
         try {
-            const bbtRows     = this.getValues(this.db.exec(queryBbt));
-            const itemRows    = this.getValues(this.db.exec(queryItems));
-            const creatorRows = this.getValues(this.db.exec(queryCreators));
-
-            const bbtCitekeys: Record<string, string> = Object.fromEntries(
-                bbtRows.map(({ zoteroKey, citeKey }) => [zoteroKey, citeKey])
-            );
-
-            const rawItems: Record<string, any> = {};
-            for (const { zoteroKey, fieldName, value, typeName, libraryID } of itemRows) {
-                if (!rawItems[zoteroKey]) {
-                    rawItems[zoteroKey] = { zoteroKey, creators: [] };
-                }
-                rawItems[zoteroKey][fieldName] = value;
-                rawItems[zoteroKey].itemType = typeName;
-                rawItems[zoteroKey].libraryID = libraryID;
-            }
-
-            for (const { zoteroKey, orderIndex, firstName, lastName, creatorType } of creatorRows) {
-                if (rawItems[zoteroKey]) {
-                    rawItems[zoteroKey].creators[orderIndex] = { firstName, lastName, creatorType };
-                }
-            }
-
-            return Object.entries(rawItems)
-                .filter(([zoteroKey]) => bbtCitekeys[zoteroKey])
-                .map(([zoteroKey, item]) => ({
-                    ...item,
-                    citeKey: bbtCitekeys[zoteroKey],
-                    year: extractYear(item.date || '')
-                }));
+            const itemRows = this.getValues(this.db.exec(queryItems));
+            const items = itemRows.map(({ creators, date, ...rest }) => ({
+                ...rest,
+                date,
+                year: extractYear(date || ''),
+                creators: (JSON.parse(creators) as any[])
+                    .filter(c => c.firstName !== null || c.lastName !== null)
+                    .sort((a, b) => a.orderIndex - b.orderIndex)
+            }));
+            return items;
         } catch (error) {
             handleError(error, `Error querying database`);
             return [];

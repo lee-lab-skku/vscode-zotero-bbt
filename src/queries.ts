@@ -1,56 +1,36 @@
 // src/queries.ts
 
-// query for better bibtex citation keys
-export const queryBbt = `
-                SELECT DISTINCT 
-                    items.key as zoteroKey,
-                    parentItemDataValues.value as citeKey,
-                    items.libraryID
-                FROM
-                    items
-                    INNER JOIN itemData ON itemData.itemID = items.itemID
-                    INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
-                    INNER JOIN itemData as parentItemData ON parentItemData.itemID = items.itemID
-                    INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
-                    INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
-				WHERE
-					fields.fieldName == ('citationKey');
-            `;
-
-// query for zotero items
+// query for zotero items (with creators aggregated as JSON)
 export const queryItems = `
-                SELECT DISTINCT 
-                    items.key as zoteroKey,
-                    fields.fieldName,
-                    parentItemDataValues.value,
-                    itemTypes.typeName,
-                    items.libraryID
-                FROM
-                    items
-                    INNER JOIN itemData ON itemData.itemID = items.itemID
-                    INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
-                    INNER JOIN itemData as parentItemData ON parentItemData.itemID = items.itemID
-                    INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
-                    INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
-                    INNER JOIN itemTypes ON itemTypes.itemTypeID = items.itemTypeID
-				WHERE
-					fields.fieldName IN ('title', 'date');
-            `;
-
-// query for creators
-export const queryCreators = `
-                SELECT DISTINCT
-                    items.key as zoteroKey,
-                    creators.firstName,
-                    creators.lastName,
-                    itemCreators.orderIndex,
-                    creatorTypes.creatorType
-                FROM
-                    items
-                    INNER JOIN itemData ON itemData.itemID = items.itemID
-                    INNER JOIN itemCreators ON itemCreators.itemID = items.itemID
-                    INNER JOIN creators ON creators.creatorID = itemCreators.creatorID
-                    INNER JOIN creatorTypes ON itemCreators.creatorTypeID = creatorTypes.creatorTypeID
+            WITH pivoted AS (
+                SELECT
+                    id.itemID,
+                    MAX(CASE WHEN f.fieldName = 'title'       THEN idv.value END) AS title,
+                    MAX(CASE WHEN f.fieldName = 'date'        THEN idv.value END) AS date,
+                    MAX(CASE WHEN f.fieldName = 'citationKey' THEN idv.value END) AS citeKey
+                FROM itemData id
+                JOIN itemDataValues idv USING (valueID)
+                JOIN fields f ON f.fieldID = id.fieldID
+                WHERE f.fieldName IN ('title', 'date', 'citationKey')
+                GROUP BY id.itemID
+                HAVING citeKey IS NOT NULL
+            )
+            SELECT
+                it.key AS zoteroKey, itypes.typeName AS itemType, it.libraryID,
+                p.title, p.date, p.citeKey,
+                json_group_array(json_object(
+                    'firstName',   c.firstName,
+                    'lastName',    c.lastName,
+                    'creatorType', ct.creatorType,
+                    'orderIndex',  ic.orderIndex
+                )) AS creators
+            FROM items it
+            JOIN itemTypes itypes ON itypes.itemTypeID = it.itemTypeID
+            JOIN pivoted p        ON p.itemID = it.itemID
+            LEFT JOIN itemCreators ic ON ic.itemID = it.itemID
+            LEFT JOIN creators c      ON c.creatorID = ic.creatorID
+            LEFT JOIN creatorTypes ct ON ct.creatorTypeID = ic.creatorTypeID
+            GROUP BY it.key, itypes.typeName, it.libraryID, p.title, p.date, p.citeKey;
             `;
 
 // query for getting zotero item by citekey
