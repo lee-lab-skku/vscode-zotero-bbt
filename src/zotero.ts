@@ -77,82 +77,37 @@ export class ZoteroDatabase {
         }
 
         try {
-            // Execute queries
-            const [sqlBbt, sqlItems, sqlCreators] = [
-                // if bbt do exist, use legacy method to get citation keys
-                // otherwise use the new method to get citation keys from zotero database
-                this.db.exec(queryBbt),
-                this.db.exec(queryItems),
-                this.db.exec(queryCreators)
-            ];
+            const bbtRows     = this.getValues(this.db.exec(queryBbt));
+            const itemRows    = this.getValues(this.db.exec(queryItems));
+            const creatorRows = this.getValues(this.db.exec(queryCreators));
 
-            // Process results
-            const bbtCitekeys: Record<string, string> = {};
-            if (sqlBbt.length > 0) {
-                const { columns, values } = sqlBbt[0];
-                const zoteroKeyIndex = columns.indexOf('zoteroKey');
-                const citeKeyIndex = columns.indexOf('citeKey');
-                for (const row of values) {
-                    bbtCitekeys[row[zoteroKeyIndex] as string] = row[citeKeyIndex] as string;
-                }
-            }
+            const bbtCitekeys: Record<string, string> = Object.fromEntries(
+                bbtRows.map(({ zoteroKey, citeKey }) => [zoteroKey, citeKey])
+            );
 
             const rawItems: Record<string, any> = {};
-            if (sqlItems.length > 0) {
-                const { columns, values } = sqlItems[0];
-                const zoteroKeyIndex = columns.indexOf('zoteroKey');
-                const fieldNameIndex = columns.indexOf('fieldName');
-                const valueIndex = columns.indexOf('value');
-                const typeNameIndex = columns.indexOf('typeName');
-                const libraryIdIndex = columns.indexOf('libraryID');
+            for (const { zoteroKey, fieldName, value, typeName, libraryID } of itemRows) {
+                if (!rawItems[zoteroKey]) {
+                    rawItems[zoteroKey] = { zoteroKey, creators: [] };
+                }
+                rawItems[zoteroKey][fieldName] = value;
+                rawItems[zoteroKey].itemType = typeName;
+                rawItems[zoteroKey].libraryID = libraryID;
+            }
 
-                for (const row of values) {
-                    const zoteroKey = row[zoteroKeyIndex] as string;
-                    if (!rawItems[zoteroKey]) {
-                        rawItems[zoteroKey] = {
-                            creators: [],
-                            zoteroKey: zoteroKey
-                        };
-                    }
-
-                    rawItems[zoteroKey][row[fieldNameIndex] as string] = row[valueIndex];
-                    rawItems[zoteroKey].itemType = row[typeNameIndex];
-                    rawItems[zoteroKey].libraryID = row[libraryIdIndex];
+            for (const { zoteroKey, orderIndex, firstName, lastName, creatorType } of creatorRows) {
+                if (rawItems[zoteroKey]) {
+                    rawItems[zoteroKey].creators[orderIndex] = { firstName, lastName, creatorType };
                 }
             }
 
-            if (sqlCreators.length > 0) {
-                const { columns, values } = sqlCreators[0];
-                const zoteroKeyIndex = columns.indexOf('zoteroKey');
-                const orderIndexIndex = columns.indexOf('orderIndex');
-                const firstNameIndex = columns.indexOf('firstName');
-                const lastNameIndex = columns.indexOf('lastName');
-                const creatorTypeIndex = columns.indexOf('creatorType');
-
-                for (const row of values) {
-                    const zoteroKey = row[zoteroKeyIndex] as string;
-                    if (rawItems[zoteroKey]) {
-                        rawItems[zoteroKey].creators[row[orderIndexIndex] as number] = {
-                            firstName: row[firstNameIndex],
-                            lastName: row[lastNameIndex],
-                            creatorType: row[creatorTypeIndex]
-                        };
-                    }
-                }
-            }
-
-            // Build final items array with citeKeys
-            const items: any[] = [];
-            for (const [zoteroKey, item] of Object.entries(rawItems)) {
-                const citeKey = bbtCitekeys[zoteroKey];
-                if (citeKey) {
-                    item.citeKey = citeKey;
-                    item.year = extractYear(item.date || '');
-                    items.push(item);
-                }
-            }
-
-            return items;
+            return Object.entries(rawItems)
+                .filter(([zoteroKey]) => bbtCitekeys[zoteroKey])
+                .map(([zoteroKey, item]) => ({
+                    ...item,
+                    citeKey: bbtCitekeys[zoteroKey],
+                    year: extractYear(item.date || '')
+                }));
         } catch (error) {
             handleError(error, `Error querying database`);
             return [];
