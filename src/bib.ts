@@ -34,8 +34,7 @@ export class BibManager {
             return vscode.Uri.file(bibFile);
         }
         // otherwise, resolve it relative to the current document
-        const docDir = path.dirname(this.editor.document.uri.fsPath);
-        return vscode.Uri.file(path.join(docDir, bibFile));
+        return vscode.Uri.joinPath(this.editor.document.uri, '..', bibFile);
     }
 
     private async fileExists(uri: vscode.Uri): Promise<boolean> {

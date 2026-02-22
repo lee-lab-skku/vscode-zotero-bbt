@@ -8,7 +8,7 @@ export const queryBbtLegacy = `
                     citationkey
             `;
 
-// query for better bibtex citation keys (legacy)
+// query for better bibtex citation keys
 export const queryBbt = `
                 SELECT DISTINCT 
                     items.key as zoteroKey,
@@ -61,6 +61,7 @@ export const queryCreators = `
                     INNER JOIN creatorTypes ON itemCreators.creatorTypeID = creatorTypes.creatorTypeID
             `;
 
+// query for getting zotero item by citekey (legacy)
 export function queryZoteroKeyLegacy(citeKey: string): string {
     return `
                 SELECT
@@ -74,6 +75,7 @@ export function queryZoteroKeyLegacy(citeKey: string): string {
             `;
 };
 
+// query for getting zotero item by citekey
 export function queryZoteroKey(citeKey: string): string {
     return `
                 SELECT DISTINCT 
@@ -92,6 +94,7 @@ export function queryZoteroKey(citeKey: string): string {
             `;
 };
 
+// below queries are for opening zotero item/pdf by zotero key
 export function queryPdfByZoteroKey(zoteroKey: string, libraryID: number): string {
     return `
                 SELECT DISTINCT 

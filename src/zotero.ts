@@ -278,17 +278,11 @@ export class ZoteroDatabase {
     }
 
     private getValues(sqlResult: initSqlJs.QueryExecResult[]): any[] {
+        if (sqlResult.length === 0) return [];
+        
         const { columns, values } = sqlResult[0];
-
-        // return results as array of objects
-        const results: any[] = [];
-        for (const row of values) {
-            const result: any = {};
-            for (let i = 0; i < columns.length; i++) {
-                result[columns[i]] = row[i];
-            }
-            results.push(result);
-        }
-        return results;
+        return values.map(row => 
+            Object.fromEntries(columns.map((col, i) => [col, row[i]]))
+        );
     }
 }
