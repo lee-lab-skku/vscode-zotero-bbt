@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+
+## [1.2.7] - 2026-02-21
+
+- Fix issues where URI scheme (e.g., `vscode-remote://` for WSL/SSH) is not preserved when resolving `.bib` file paths relative to the current document (issue #19).
+
 ## [1.2.6] - 2026-02-19
 
 - Fix issue where the extension would not correctly resolve relative paths to `.bib` files in some cases (e.g., when the active editor is a file in a subdirectory of the workspace; issue #18).
