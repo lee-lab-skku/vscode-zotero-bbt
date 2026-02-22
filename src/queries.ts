@@ -33,99 +33,42 @@ export const queryItems = `
             GROUP BY it.key, itypes.typeName, it.libraryID, p.title, p.date, p.citeKey;
             `;
 
-// query for getting zotero item by citekey
+// query for getting zotero item(s) by citekey — includes title/typeName/libraryName for picker
 export function queryZoteroKey(citeKey: string): string {
     return `
-                SELECT DISTINCT 
-                    items.key as zoteroKey,
-                    parentItemDataValues.value as citeKey,
-                    items.libraryID
-                FROM
-                    items
-                    INNER JOIN itemData ON itemData.itemID = items.itemID
-                    INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
-                    INNER JOIN itemData as parentItemData ON parentItemData.itemID = items.itemID
-                    INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
-                    INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
-				WHERE
-					fields.fieldName == ('citationKey') AND citeKey = '${citeKey}';
+                SELECT
+                    it.key AS zoteroKey,
+                    it.libraryID,
+                    itypes.typeName,
+                    MAX(CASE WHEN f.fieldName = 'title' THEN idv.value END) AS title,
+                    g.name AS libraryName
+                FROM items it
+                    INNER JOIN itemData id     ON id.itemID   = it.itemID
+                    INNER JOIN itemDataValues idv ON idv.valueID = id.valueID
+                    INNER JOIN fields f         ON f.fieldID   = id.fieldID
+                    INNER JOIN itemTypes itypes ON itypes.itemTypeID = it.itemTypeID
+                    LEFT JOIN  groups g         ON g.libraryID = it.libraryID
+                WHERE f.fieldName IN ('title', 'citationKey')
+                GROUP BY it.key, it.libraryID, itypes.typeName, g.name
+                HAVING MAX(CASE WHEN f.fieldName = 'citationKey' THEN idv.value END) = '${citeKey}';
             `;
-};
+}
 
-// below queries are for opening zotero item/pdf by zotero key
-export function queryPdfByZoteroKey(zoteroKey: string, libraryID: number): string {
-    return `
-                SELECT DISTINCT 
-                    items.key as zoteroKey,
-                    fields.fieldName,
-                    parentItemDataValues.value,
-                    attachment_items.key AS pdfKey
-                FROM
-                    items
-                    INNER JOIN itemData ON itemData.itemID = items.itemID
-                    INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
-                    INNER JOIN itemData as parentItemData ON parentItemData.itemID = items.itemID
-                    INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
-                    INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
-                    LEFT JOIN itemAttachments ON items.itemID = itemAttachments.parentItemID AND itemAttachments.contentType = 'application/pdf'
-                    LEFT JOIN items attachment_items ON itemAttachments.itemID = attachment_items.itemID
-				WHERE
-                    zoteroKey = '${zoteroKey}' AND 
-                    items.libraryID = ${libraryID} AND 
-                    fieldName = 'title';
-    `;
-};
-
-export function queryDoiByZoteroKey(zoteroKey: string, libraryID: number): string {
-    return `
-                SELECT DISTINCT 
-                    items.key as zoteroKey,
-                    fields.fieldName,
-                    parentItemDataValues.value
-                FROM
-                    items
-                    INNER JOIN itemData ON itemData.itemID = items.itemID
-                    INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
-                    INNER JOIN itemData as parentItemData ON parentItemData.itemID = items.itemID
-                    INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
-                    INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
-				WHERE
-                    zoteroKey = '${zoteroKey}' AND 
-                    items.libraryID = ${libraryID} AND 
-                    fieldName = 'DOI';
-    `;
-};
-
-export function queryGroupIDByLibraryID(libraryID: number): string {
+// query for getting open options (pdf, doi) for a given zoteroKey + libraryID
+export function queryOpenOptions(zoteroKey: string, libraryID: number): string {
     return `
                 SELECT
-                    groupID, 
-					libraryID,
-                    name
-                FROM
-                    groups
-                WHERE
-                    libraryID = ${libraryID};
-    `;
-};
-
-export function queryGroupItemsByZoterokey(zoteroKey: string, libraryID: number): string {
-    return `
-                SELECT DISTINCT 
-                    items.key as zoteroKey,
-                    parentItemDataValues.value as title,
-                    itemTypes.typeName,
-                    items.libraryID,
-                    groups.name as libraryName
-                FROM
-                    items
-                    INNER JOIN itemData ON itemData.itemID = items.itemID
-                    INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
-                    INNER JOIN itemData as parentItemData ON parentItemData.itemID = items.itemID
-                    INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
-                    INNER JOIN itemTypes ON itemTypes.itemTypeID = items.itemTypeID
-					LEFT JOIN groups ON items.libraryID = groups.libraryID
-				WHERE
-					parentItemData.fieldID = 1 AND  items.key = '${zoteroKey}' AND items.libraryID = ${libraryID};
-    `;
+                    MAX(g.groupID)                                          AS groupID,
+                    MAX(att.key)                                            AS pdfKey,
+                    MAX(CASE WHEN f.fieldName = 'DOI' THEN idv.value END)  AS doi
+                FROM items it
+                    LEFT JOIN groups g           ON g.libraryID     = it.libraryID
+                    LEFT JOIN itemAttachments ia  ON ia.parentItemID = it.itemID
+                        AND ia.contentType = 'application/pdf'
+                    LEFT JOIN items att           ON att.itemID      = ia.itemID
+                    LEFT JOIN itemData id         ON id.itemID       = it.itemID
+                    LEFT JOIN itemDataValues idv  ON idv.valueID     = id.valueID
+                    LEFT JOIN fields f            ON f.fieldID       = id.fieldID
+                WHERE it.key = '${zoteroKey}' AND it.libraryID = ${libraryID};
+            `;
 }

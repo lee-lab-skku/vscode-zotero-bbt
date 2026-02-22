@@ -3,11 +3,8 @@ import * as vscode from 'vscode';
 import initSqlJs, { Database } from 'sql.js';
 import {
     queryItems,
-    queryPdfByZoteroKey,
-    queryDoiByZoteroKey,
-    queryGroupIDByLibraryID,
-    queryGroupItemsByZoterokey,
-    queryZoteroKey
+    queryZoteroKey,
+    queryOpenOptions
 } from './queries';
 import {
     handleError,
@@ -97,74 +94,41 @@ export class ZoteroDatabase {
             return null;
         }
 
-        const sqlZoteroKey = this.db.exec(queryZoteroKey(citeKey));
-        
-        // handle non-existent citeKey
-        if (sqlZoteroKey.length === 0) {
+        const matches = this.getValues(this.db.exec(queryZoteroKey(citeKey)));
+
+        if (matches.length === 0) {
             vscode.window.showErrorMessage(`Could not find Zotero item for ${citeKey}`);
             return null;
         }
 
-        let groupID = null;
-        let zoteroKey = this.getFirstValue(sqlZoteroKey)['zoteroKey'];
-        let libraryID = this.getFirstValue(sqlZoteroKey)['libraryID'];
+        let { zoteroKey, libraryID } = matches[0];
 
-        // if there are multiple results with the same citeKey, show picker to select one
-        if (sqlZoteroKey[0].values.length > 1) {
-            // use queryGroupItemsByZoterokey to get items by zoteroKey and libraryID
-            // then show picker to select one
-            const quickPickItems = this.getValues(sqlZoteroKey).map(result => {
-                const sqlItem = this.db?.exec(queryGroupItemsByZoterokey(result.zoteroKey, result.libraryID));
-                const item = this.getFirstValue(sqlItem!);
-                const icon = formatTypes(item.typeName);
-                const libraryName = item.libraryName || 'My Library';
+        if (matches.length > 1) {
+            const quickPickItems = matches.map(m => ({
+                label: `${formatTypes(m.typeName)} ${m.title}`,
+                detail: m.libraryName || 'My Library',
+                zoteroKey: m.zoteroKey,
+                libraryID: m.libraryID
+            }));
 
-                return {
-                    label: `${icon} ${item.title}`,
-                    item: item,
-                    detail: `${libraryName}`
-                };
-            });
-
-            let selected = await vscode.window.showQuickPick(quickPickItems, {
+            const selected = await vscode.window.showQuickPick(quickPickItems, {
                 placeHolder: `Multiple items found for @${citeKey}. Please select one:`,
                 matchOnDescription: true,
                 matchOnDetail: true
             });
-            if (!selected) {
-                // open cancelled
-                return null;
-            }
-            zoteroKey = selected.item.zoteroKey;
-            libraryID = selected.item.libraryID;
+            if (!selected) { return null; }
+            zoteroKey = selected.zoteroKey;
+            libraryID = selected.libraryID;
         }
 
-        if (libraryID !== 1) {
-            const sqlGroup = this.db.exec(queryGroupIDByLibraryID(libraryID));
-            groupID = this.getFirstValue(sqlGroup)['groupID'];
-        }
+        const { groupID, pdfKey, doi } = this.getFirstValue(
+            this.db.exec(queryOpenOptions(zoteroKey, libraryID))
+        );
 
-        const options = [];
-        options.push({ type: 'zotero', key: zoteroKey, groupID: groupID });
+        const options: any[] = [{ type: 'zotero', key: zoteroKey, groupID }];
+        if (pdfKey) { options.push({ type: 'pdf', key: pdfKey, groupID }); }
+        if (doi)    { options.push({ type: 'doi', key: doi }); }
 
-        const sqlPdf = this.db.exec(queryPdfByZoteroKey(zoteroKey, libraryID));
-        if (sqlPdf.length > 0) {
-            const pdfKey = this.getFirstValue(sqlPdf)['pdfKey'];
-
-            if (pdfKey) {
-                options.push({ type: 'pdf', key: pdfKey, groupID: groupID });
-            }
-        }
-
-        const sqlDoi = this.db.exec(queryDoiByZoteroKey(zoteroKey, libraryID));
-        if (sqlDoi.length > 0) {
-            const doi = this.getFirstValue(sqlDoi)['value'];
-
-            if (doi) {
-                options.push({ type: 'doi', key: doi });
-            }
-        }
-        
         return options;
     }
 
