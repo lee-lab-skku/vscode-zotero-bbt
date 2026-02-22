@@ -15,11 +15,7 @@ suite('ZoteroDatabase', () => {
     
     function initZoteroDb(filename: string): ZoteroDatabase {
         const zoteroDbPath = joinFixturePath(filename).path;
-        return new ZoteroDatabase({
-            zoteroDbPath: zoteroDbPath,
-            betterBibtexDbPath: '',
-            betterBibtexLegacy: false
-        });
+        return new ZoteroDatabase(zoteroDbPath);
     };
 
     async function parseJsonFile(filename: string): Promise<any> {

@@ -3,10 +3,8 @@ import * as vscode from 'vscode';
 import initSqlJs, { Database } from 'sql.js';
 import {
     queryBbt,
-    queryBbtLegacy,
     queryItems,
     queryCreators,
-    queryZoteroKeyLegacy,
     queryPdfByZoteroKey,
     queryDoiByZoteroKey,
     queryGroupIDByLibraryID,
@@ -19,19 +17,14 @@ import {
     formatTypes
 } from './helpers';
 
-interface DatabaseOptions {
-    zoteroDbPath: string;
-    betterBibtexDbPath: string;
-    betterBibtexLegacy: boolean;
-}
 
 export class ZoteroDatabase {
-    private options: DatabaseOptions;
-    private db: Database | null = null;
-    private bbt: Database | null = null;
+    private zoteroDbPath: string;
 
-    constructor(options: DatabaseOptions) {
-        this.options = options;
+    private db: Database | null = null;
+
+    constructor(zoteroDbPath: string) {
+        this.zoteroDbPath = zoteroDbPath;
     }
 
     /**
@@ -41,13 +34,8 @@ export class ZoteroDatabase {
         try {
             const SQL = await initSqlJs();
 
-            const zoteroDbFile = await fs.readFile(this.options.zoteroDbPath);
+            const zoteroDbFile = await fs.readFile(this.zoteroDbPath);
             this.db = new SQL.Database(zoteroDbFile);
-
-            if (this.options.betterBibtexLegacy) {
-                const bbtDbFile = await fs.readFile(this.options.betterBibtexDbPath);
-                this.bbt = new SQL.Database(bbtDbFile);
-            }
 
             return true;
         } catch (error) {
@@ -66,7 +54,7 @@ export class ZoteroDatabase {
     }
 
     public async connectIfNeeded() {
-        if (!this.db || !this.bbt) {
+        if (!this.isConnected()) {
             const connected = await this.connect();
             if (!connected) {
                 vscode.window.showErrorMessage('Failed to connect to Zotero database');
@@ -87,17 +75,13 @@ export class ZoteroDatabase {
             vscode.window.showErrorMessage('Database not connected');
             return [];
         }
-        if (this.options.betterBibtexLegacy && !this.bbt) {
-            vscode.window.showErrorMessage('Database not connected');
-            return [];
-        }
 
         try {
             // Execute queries
             const [sqlBbt, sqlItems, sqlCreators] = [
                 // if bbt do exist, use legacy method to get citation keys
                 // otherwise use the new method to get citation keys from zotero database
-                this.bbt? this.bbt.exec(queryBbtLegacy) : this.db.exec(queryBbt),
+                this.db.exec(queryBbt),
                 this.db.exec(queryItems),
                 this.db.exec(queryCreators)
             ];
@@ -180,12 +164,8 @@ export class ZoteroDatabase {
             vscode.window.showErrorMessage('Database not connected');
             return null;
         }
-        if (this.options.betterBibtexLegacy && !this.bbt) {
-            vscode.window.showErrorMessage('Database not connected');
-            return null;
-        }
 
-        const sqlZoteroKey = this.bbt? this.bbt.exec(queryZoteroKeyLegacy(citeKey)) : this.db.exec(queryZoteroKey(citeKey));
+        const sqlZoteroKey = this.db.exec(queryZoteroKey(citeKey));
         
         // handle non-existent citeKey
         if (sqlZoteroKey.length === 0) {
@@ -260,11 +240,6 @@ export class ZoteroDatabase {
         if (this.db) {
             this.db.close();
             this.db = null;
-        }
-
-        if (this.bbt) {
-            this.bbt.close();
-            this.bbt = null;
         }
     }
 

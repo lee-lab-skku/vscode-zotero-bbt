@@ -1,12 +1,4 @@
 // src/queries.ts
-// query for better bibtex citation keys (legacy)
-export const queryBbtLegacy = `
-                SELECT
-                    itemKey as zoteroKey, 
-					citationKey as citeKey
-                FROM
-                    citationkey
-            `;
 
 // query for better bibtex citation keys
 export const queryBbt = `
@@ -60,20 +52,6 @@ export const queryCreators = `
                     INNER JOIN creators ON creators.creatorID = itemCreators.creatorID
                     INNER JOIN creatorTypes ON itemCreators.creatorTypeID = creatorTypes.creatorTypeID
             `;
-
-// query for getting zotero item by citekey (legacy)
-export function queryZoteroKeyLegacy(citeKey: string): string {
-    return `
-                SELECT
-                    itemKey as zoteroKey, 
-					citationKey as citeKey,
-					libraryID
-                FROM
-                    citationkey
-                WHERE
-                    citeKey = '${citeKey}';
-            `;
-};
 
 // query for getting zotero item by citekey
 export function queryZoteroKey(citeKey: string): string {
@@ -171,9 +149,3 @@ export function queryGroupItemsByZoterokey(zoteroKey: string, libraryID: number)
 					parentItemData.fieldID = 1 AND  items.key = '${zoteroKey}' AND items.libraryID = ${libraryID};
     `;
 }
-
-export default {
-    queryBbt: queryBbtLegacy,
-    queryItems,
-    queryCreators
-};

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Breaking changes
+
+- The extension no longer support reading citation keys from Better BibTeX's `better-bibtex.sqlite` database. Users relying on older versions of Zotero and Better BibTeX are encouraged to use 1.2.7 or earlier versions of the extension.
+
+### Bug fixes
+
 - Fix issues where `*.bib` file in `yaml` headers are not correctly parsed (e.g., list of multiple `*.bib` files).
 
 ## [1.2.7] - 2026-02-21

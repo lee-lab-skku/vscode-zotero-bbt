@@ -279,46 +279,6 @@ export class BibManager {
         }
     }
 
-    public async getOpenOptions(bibFile: string, citeKey: string): Promise<Array<any>> {
-        const bibUri = this.resolveBibUri(bibFile);
-        if (!await this.fileExists(bibUri)) {
-            vscode.window.showErrorMessage(`Bibliography file not found at ${bibUri.toString()}`);
-            return [];
-        }
-
-        const bibContent = await this.readFileAsString(bibUri);
-        // Create regex to match the specific entry by cite key
-        const entryRegex = new RegExp(`@\\w+\\{${citeKey},[^@]*?\\n\\}`, 'gs');
-
-        // Find the specific entry
-        const match = bibContent.match(entryRegex);
-
-        if (!match || match.length === 0) {
-            return [];
-        }
-
-        const options = [];
-        const entryText = match[0];
-
-        // Extract pdfKey
-        const pdfKeyMatch = entryText.match(/pdfKey\s*=\s*\{([^}]+)\}/);
-        if (pdfKeyMatch) {
-            options.push({ type: 'pdf', key: pdfKeyMatch[1] });
-        }
-        // Extract Zotero Item Key
-        const keyMatch = entryText.match(/zoteroKey\s*=\s*\{([^}]+)\}/);
-        if (keyMatch) {
-            options.push({ type: 'zotero', key: keyMatch[1] });
-        }
-        // Extract DOI
-        const doiMatch = entryText.match(/DOI\s*=\s*\{([^}]+)\}/);
-        if (doiMatch) {
-            options.push({ type: 'doi', url: `https://doi.org/${doiMatch[1]}` });
-        }
-
-        return options;
-    }
-
     private insertCite(item: any) {
         // Format citation key based on file type
         const citeKey = item.citeKey;
