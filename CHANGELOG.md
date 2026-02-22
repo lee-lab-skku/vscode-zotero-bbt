@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Fix issues where `*.bib` file in `yaml` headers are not correctly parsed (e.g., list of multiple `*.bib` files).
 
 ## [1.2.7] - 2026-02-21
 
