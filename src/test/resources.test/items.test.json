@@ -1,0 +1,81 @@
+[
+    {
+        "creators": [
+            {
+                "firstName": "C. E.",
+                "lastName": "Shannon",
+                "creatorType": "author"
+            }
+        ],
+        "zoteroKey": "E8I9ZFW4",
+        "title": "A mathematical theory of communication",
+        "itemType": "journalArticle",
+        "libraryID": 1,
+        "date": "1948-07-00 1948-07",
+        "citeKey": "shannon1948",
+        "year": "1948"
+    },
+    {
+        "creators": [
+            {
+                "firstName": "Peter S.",
+                "lastName": "Bearman",
+                "creatorType": "author"
+            },
+            {
+                "firstName": "James",
+                "lastName": "Moody",
+                "creatorType": "author"
+            },
+            {
+                "firstName": "Katherine",
+                "lastName": "Stovel",
+                "creatorType": "author"
+            }
+        ],
+        "zoteroKey": "LAMX9GPH",
+        "title": "Chains of Affection: The Structure of Adolescent Romantic and Sexual Networks",
+        "itemType": "journalArticle",
+        "libraryID": 1,
+        "date": "2004-00-00 2004",
+        "citeKey": "bearman2004",
+        "year": "2004"
+    },
+    {
+        "creators": [
+            {
+                "firstName": "Richard",
+                "lastName": "McElreath",
+                "creatorType": "author"
+            }
+        ],
+        "zoteroKey": "VZJAZ4N6",
+        "title": "Statistical Rethinking: A Bayesian Course with Examples in R and STAN",
+        "itemType": "book",
+        "libraryID": 1,
+        "date": "2020-00-00 2020",
+        "citeKey": "mcelreath2020",
+        "year": "2020"
+    },
+    {
+        "creators": [
+            {
+                "firstName": "Pavel N.",
+                "lastName": "Krivitsky",
+                "creatorType": "author"
+            },
+            {
+                "firstName": "Mark S.",
+                "lastName": "Handcock",
+                "creatorType": "author"
+            }
+        ],
+        "zoteroKey": "C6YBBJ9W",
+        "title": "A Separable Model for Dynamic Networks",
+        "itemType": "preprint",
+        "libraryID": 1,
+        "date": "2010-11-08 8 Nov 2010",
+        "citeKey": "krivitsky2014",
+        "year": "2010"
+    }
+]

@@ -211,6 +211,19 @@ export class BibManager {
 
         return bibPath;
     }
+    
+    private async checkCiteKeyExists(citeKey: string, bibContent: string): Promise<boolean> {
+        const lines = bibContent.split('\n');
+
+        // Check if entry already exists
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].match(new RegExp(`^@.*{${citeKey},`))) {
+                vscode.window.showInformationMessage(`Entry for @${citeKey} already exists in bibliography`);
+                return true;
+            }
+        }
+        return false;
+    }
 
     public async updateBibFile(item: any): Promise<void> {
         const bibFile = await this.locateBibFile();
@@ -233,17 +246,10 @@ export class BibManager {
                 vscode.window.showInformationMessage(`Created new bibliography file at ${bibFile}`);
             }
 
-            // Read file to check if entry already exists
             const bibContent = await this.readFileAsString(bibUri);
-            const lines = bibContent.split('\n');
-
-            // Check if entry already exists
-            for (let i = 0; i < lines.length; i++) {
-                if (lines[i].match(new RegExp(`^@.*{${citeKey},`))) {
-                    vscode.window.showInformationMessage(`Entry for @${citeKey} already exists in bibliography`);
-                    this.insertCite(item);
-                    return;
-                }
+            if (await this.checkCiteKeyExists(citeKey, bibContent)) {
+                this.insertCite(item);
+                return;
             }
 
             // Get BibTeX entry

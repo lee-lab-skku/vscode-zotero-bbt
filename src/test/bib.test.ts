@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { BibManager } from '../bib';
+import { isValidBibEntry } from '../helpers';
 
 suite('BibManager', () => {
     /** creates a bibmanager from content (in-memory) */
@@ -90,6 +91,22 @@ suite('BibManager', () => {
             assert.strictEqual(result, 'refs.bib');
         });
     });
+    suite('BibManager - Better BibTeX', () => {
+        test('bbtExport', async () => {
+            const manager = await makeManagerWithContent('', 'latex');
+            // test that the exported BibTeX entry is valid
+            const validItem = await manager.bbtExport(
+                {citeKey: 'shannon1948'}
+            );
+            const valid = isValidBibEntry(validItem);
+            assert.strictEqual(valid, true);
+
+            const invalidItem = await manager.bbtExport(
+                {citeKey: 'crowley2020'}
+            );
+            assert.strictEqual(invalidItem, '');
+        });
+    });
 
     suite('BibManager - Other functions', () => {
         teardown(async () => {
@@ -130,25 +147,36 @@ suite('BibManager', () => {
             const manager = await makeManagerWithContent('', 'latex');
             const fileUri = joinFixturePath('bib.test.bib');
             
-            // indend is intentional (otherwise the test won't work)
-            const expectedContent = `
-@article{shannon1948,
-  title = {A Mathematical Theory of Communication},
-  author = {Shannon, C. E.},
-  date = {1948-07},
-  journaltitle = {The Bell System Technical Journal},
-  volume = {27},
-  number = {3},
-  pages = {379--423},
-  issn = {0005-8580},
-  doi = {10.1002/j.1538-7305.1948.tb01338.x}
-}`;
+            const expectedContent = [
+                '@article{shannon1948,',
+                '  title = {A Mathematical Theory of Communication},',
+                '  author = {Shannon, C. E.},',
+                '  date = {1948-07},',
+                '  journaltitle = {The Bell System Technical Journal},',
+                '  volume = {27},',
+                '  number = {3},',
+                '  pages = {379--423},',
+                '  issn = {0005-8580},',
+                '  doi = {10.1002/j.1538-7305.1948.tb01338.x}',
+                '}',
+            ].join('\n');
             const content = await (manager as any).readFileAsString(fileUri);
             assert.strictEqual(content.trim(), expectedContent.trim());
         });
 
+        test('checkCiteKeyExists', async () => {
+            const manager = await makeManagerWithContent('', 'latex');
+            const bibUri = joinFixturePath('bib.test.bib');
+            const bibContent = await (manager as any).readFileAsString(bibUri);
+        
+            // existing cite key
+            const existsResult = await (manager as any).checkCiteKeyExists('shannon1948', bibContent);
+            assert.strictEqual(existsResult, true);
+            
+            // non-existing cite key
+            const notExistsResult = await (manager as any).checkCiteKeyExists('crowley2020', bibContent);
+            assert.strictEqual(notExistsResult, false);
+        });
     // unimplemented tests
-    // suite('getOpenOptions', () => { });
-    // suite('bbtExport', () => { });
     });
 });

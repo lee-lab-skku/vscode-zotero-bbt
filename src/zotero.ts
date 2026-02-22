@@ -74,6 +74,10 @@ export class ZoteroDatabase {
             }
         }
     }
+    
+    public isConnected(): boolean {
+        return this.db !== null;
+    }
 
     /**
      * Get items from Zotero database (Legacy Better BibTeX only)
