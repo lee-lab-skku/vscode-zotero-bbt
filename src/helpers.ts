@@ -7,20 +7,6 @@ export function expandPath(filePath: string): string {
     if (filePath.startsWith('~/')) {
         return path.join(os.homedir(), filePath.slice(2));
     }
-    if (!path.isAbsolute(filePath)) {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders || workspaceFolders.length === 0) {
-            // if no open workspace, resolve relative to the folder of the active editor
-            const activeEditor = vscode.window.activeTextEditor;
-            const openFileFolder = path.dirname(activeEditor!.document.uri.fsPath);
-            return path.join(openFileFolder, filePath);
-
-        } else {
-            // there's an open workspace, resolve relative to the first workspace folder
-            const workspaceFolder = workspaceFolders[0].uri.fsPath;
-            return path.join(workspaceFolder, filePath);
-        }
-    }
     return filePath;
 }
 

@@ -4,14 +4,14 @@ import * as path from 'path';
 import { BibManager } from '../bib';
 
 suite('BibManager', () => {
-    /** Creates a BibManager backed by an untitled in-memory document. */
+    /** creates a bibmanager from content (in-memory) */
     async function makeManagerWithContent(content: string, fileType: string): Promise<BibManager> {
         const doc = await vscode.workspace.openTextDocument({ content, language: fileType });
         const editor = await vscode.window.showTextDocument(doc);
         return new BibManager(editor, fileType);
     }
 
-    /** Creates a BibManager backed by an on-disk fixture file. */
+    /** creates a bibmanager from file. */
     async function makeManagerFromFile(filename: string, fileType: string): Promise<BibManager> {
         const uri = joinFixturePath(filename);
         const doc = await vscode.workspace.openTextDocument(uri);
@@ -19,6 +19,7 @@ suite('BibManager', () => {
         return new BibManager(editor, fileType);
     }
 
+    /** resolve path for reading files in src/test/resources.test */
     function joinFixturePath(filename: string): vscode.Uri {
         const fixtureDir = path.join(__dirname, '..', '..', 'src', 'test', 'resources.test');
         return vscode.Uri.file(path.join(fixtureDir, filename));
