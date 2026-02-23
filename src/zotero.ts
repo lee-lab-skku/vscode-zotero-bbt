@@ -12,10 +12,12 @@ import {
     formatTypes
 } from './helpers';
 
-
+/**
+ * class for managing Zotero database connection and queries
+ * @param zoteroDbPath absolute path to zotero.sqlite database file
+ */
 export class ZoteroDatabase {
     private zoteroDbPath: string;
-
     private db: Database | null = null;
 
     constructor(zoteroDbPath: string) {
@@ -23,16 +25,16 @@ export class ZoteroDatabase {
     }
 
     /**
-     * Connect to Zotero and Better BibTeX databases
+     * connect to zotero 
      */
-    public async connect(): Promise<boolean> {
+    public async connect() {
         try {
             const SQL = await initSqlJs();
 
             const zoteroDbFile = await fs.readFile(this.zoteroDbPath);
             this.db = new SQL.Database(zoteroDbFile);
 
-            return true;
+            return;
         } catch (error) {
             if (error instanceof Error) {
                 if ('code' in error && error.code === 'ENOENT') {
@@ -44,26 +46,31 @@ export class ZoteroDatabase {
             } else {
                 handleError(new Error(String(error)), `Failed to connect to databases`);
             }
-            return false;
+            return;
         }
     }
 
+    /**
+     * connects to the database if not already connected. shows an error message on failure.
+     */
     public async connectIfNeeded() {
-        if (!this.isConnected()) {
-            const connected = await this.connect();
-            if (!connected) {
-                vscode.window.showErrorMessage('Failed to connect to Zotero database');
-                return;
-            }
+        if (this.isConnected()) {
+            return;
         }
+        await this.connect();
     }
 
+    /**
+     * returns whether the database connection is currently active.
+     * @returns true if connected, false otherwise
+     */
     public isConnected(): boolean {
         return this.db !== null;
     }
 
     /**
-     * Get items from Zotero database (Legacy Better BibTeX only)
+     * Get items from Zotero library
+     * @returns an array of zotero items if successful, otherwise an empty array
      */
     public async getItems(): Promise<any[]> {
         if (!this.db) {
@@ -86,6 +93,12 @@ export class ZoteroDatabase {
         }
     }
 
+    /**
+     * resolves open options (zotero item, pdf attachment, doi) for a given citeKey.
+     * Prompts the user to pick if multiple items match the citeKey.
+     * @param citeKey Better BibTeX cite key to look up
+     * @returns An array of open options, or null if the item could not be resolved
+     */
     public async getOpenOptions(citeKey: string): Promise<any[] | null> {
         if (!this.db) {
             vscode.window.showErrorMessage('Database not connected');
@@ -94,13 +107,16 @@ export class ZoteroDatabase {
 
         const matches = this.getValues(this.db.exec(queryZoteroKey(citeKey)));
 
+        // if no item matches the citeKey, show an error message and return null
         if (matches.length === 0) {
             vscode.window.showErrorMessage(`Could not find Zotero item for ${citeKey}`);
             return null;
         }
 
+        // default to the first match if only one item matches the citeKey
         let { zoteroKey, libraryID } = matches[0];
 
+        // if multiple items match the citeKey, prompt the user to select one
         if (matches.length > 1) {
             const quickPickItems = matches.map(m => ({
                 label: `${formatTypes(m.typeName)} ${m.title}`,
@@ -115,10 +131,12 @@ export class ZoteroDatabase {
                 matchOnDetail: true
             });
             if (!selected) { return null; }
+            // overwrite defaults (first match) with user selection
             zoteroKey = selected.zoteroKey;
             libraryID = selected.libraryID;
         }
 
+        // query open options for the selected item
         const openOptions = this.getFirstValue(
             this.db.exec(queryOpenOptions(zoteroKey, libraryID))
         );
@@ -134,6 +152,9 @@ export class ZoteroDatabase {
         return options;
     }
 
+    /**
+     * closes the database connection to releases resources.
+     */
     public close(): void {
         if (this.db) {
             this.db.close();
@@ -141,13 +162,10 @@ export class ZoteroDatabase {
         }
     }
 
-    private getFirstValue(sqlResult: initSqlJs.QueryExecResult[]): any | null {
-        if (sqlResult.length === 0 || sqlResult[0].values.length === 0) {
-            return null;
-        }
-        return this.getValues(sqlResult)[0];
-    }
-
+    /**
+     * Converts a SQL result into an array of plain objects keyed by column name.
+     * @param sqlResult raw result from `db.exec()`
+     */
     private getValues(sqlResult: initSqlJs.QueryExecResult[]): any[] {
         if (sqlResult.length === 0) { return []; }
 
@@ -156,4 +174,16 @@ export class ZoteroDatabase {
             Object.fromEntries(columns.map((col, i) => [col, row[i]]))
         );
     }
+
+    /**
+     * returns only the first row of a SQL result as a plain object, or null if empty.
+     * @param sqlResult raw result from `db.exec()`
+     */
+    private getFirstValue(sqlResult: initSqlJs.QueryExecResult[]): any | null {
+        if (sqlResult.length === 0 || sqlResult[0].values.length === 0) {
+            return null;
+        }
+        return this.getValues(sqlResult)[0];
+    }
+
 }
