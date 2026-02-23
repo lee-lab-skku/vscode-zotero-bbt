@@ -30,23 +30,10 @@ export class ZoteroDatabase {
     public async connect() {
         try {
             const SQL = await initSqlJs();
-
             const zoteroDbFile = await fs.readFile(this.zoteroDbPath);
             this.db = new SQL.Database(zoteroDbFile);
-
-            return;
         } catch (error) {
-            if (error instanceof Error) {
-                if ('code' in error && error.code === 'ENOENT') {
-                    const filePath = 'path' in error ? (error as any).path : '';
-                    vscode.window.showErrorMessage(`Database file not found at ${filePath}`);
-                } else {
-                    handleError(error, `Failed to connect to databases`);
-                }
-            } else {
-                handleError(new Error(String(error)), `Failed to connect to databases`);
-            }
-            return;
+            handleError(error, `Failed to connect to databases at ${this.zoteroDbPath}`);
         }
     }
 
